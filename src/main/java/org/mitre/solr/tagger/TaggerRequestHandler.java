@@ -57,6 +57,7 @@ import java.util.*;
  */
 public class TaggerRequestHandler extends RequestHandlerBase {
 
+  private static final String OVERLAPS = "overlaps";
   private final Logger log = LoggerFactory.getLogger(getClass());
 
   /** Request parameter. */
@@ -74,7 +75,20 @@ public class TaggerRequestHandler extends RequestHandlerBase {
     if (build)//just build; that's it.
       return;
 
-    final boolean subTags = req.getParams().getBool(SUB_TAGS, false);
+    final TagClusterReducer tagClusterReducer;
+    String overlaps = req.getParams().get(OVERLAPS);
+    if (overlaps == null) {
+      if (req.getParams().getBool(SUB_TAGS, false))
+        tagClusterReducer = TagClusterReducer.ALL;
+      else
+        tagClusterReducer = TagClusterReducer.OVERLAP;
+    } else if (overlaps.equals("LONGEST_DOMINANT_RIGHT")) {
+      tagClusterReducer = TagClusterReducer.LONGEST_DOMINANT_RIGHT;
+    } else {
+      throw new SolrException(SolrException.ErrorCode.BAD_REQUEST,
+          "unknown tag overlap mode: "+overlaps);
+    }
+
     final int rows = req.getParams().getInt(CommonParams.ROWS, 10000);
     final int tagsLimit = req.getParams().getInt(TAGS_LIMIT, 1000);
     final boolean addMatchText = req.getParams().getBool(MATCH_TEXT, false);
@@ -115,13 +129,10 @@ public class TaggerRequestHandler extends RequestHandlerBase {
     try {
       Analyzer analyzer = req.getSchema().getField(indexedField).getType().getAnalyzer();
 
-      new Tagger(corpus, analyzer, reader, subTags) {
-        int lastOffset = -1;
+      new Tagger(corpus, analyzer, reader, tagClusterReducer) {
         @SuppressWarnings("unchecked")
         @Override
         protected void tagCallback(int startOffset, int endOffset, long docIdsKey) {
-          assert endOffset >= lastOffset;
-          lastOffset = endOffset;
           if (tags.size() >= tagsLimit)
             return;
           NamedList tag = new NamedList();

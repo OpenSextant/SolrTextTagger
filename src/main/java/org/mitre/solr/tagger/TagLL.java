@@ -22,132 +22,143 @@
 
 package org.mitre.solr.tagger;
 
-import org.apache.lucene.util.fst.FST;
-
 import java.io.IOException;
 
-interface TagReceiver {
-  void receiveTag(TagLL tag);
-}
-
 /**
- * This is a Tag -- a startOffset, endOffset, and value.  It's chained to other
- * tags, hence the LL (Linked List).  A Tag starts incomplete with only
- * startOffset, and in an "advancing" state as more words are consumed.  As it
- * advances, it accumulates the longest running sub-tag into endOffset and value
- * (if any).  Other tags starting at subsequent startOffset's are chained to it
- * via advancingLL. Once a tag doesn't advance anymore, it's removed from
- * advancingLL. Prior to that moment, if it's the head of the LL, then it's tag
- * is output (if value is non-null).  There is another aspect to it called a
- * pending tag. If a tag doesn't advance anymore and it is NOT the head, and if
- * value is non-null, then it appends itself to its parent advancingLL into a
- * pendingLL.  When value is output, so are its pending tags.  But pending tags
- * at and below an advancing tag are cleared whenever it reaches a farther
- * sub-tag, since they would otherwise be a sub-tag.
- * <p/>
- * The above description is modified when subTags is true.  For subTags, when
- * "endOffset" and "value" are updated, it is immediately generated to
- * output then cleared.
+ * This is a Tag -- a startOffset, endOffset and value.
+ * <p>
+ * A Tag starts without a value in an
+ * "advancing" state.  {@link #advance(int, int)} is called with subsequent words
+ * and then eventually it won't advance any more, and value is set (could be null).
+ * <p>
+ * A Tag is also a doubly-linked-list (hence the LL in the name). All tags share
+ * a reference to the head via a 1-element array, which is potentially modified
+ * if any of the linked-list methods are called. Tags in the list should have
+ * equal or increasing start offsets.
  *
  * @author David Smiley - dsmiley@mitre.org
  */
-class TagLL extends MyFstCursor<Long> {
-//extends the cursor to avoid object allocation
+class TagLL{
 
-  final int startOffset;
-  //farthest 'final' arc at
-  int endOffset;
+  private final TagLL[] head;//a shared pointer to the head; 1 element
+  TagLL prevTag, nextTag; // linked list
+
+  private MyFstCursor<Long> cursor;
+
+  final int startOffset;//inclusive
+  int endOffset;//exclusive
   Long value;
-  TagLL pendingLL;//non-advancing (pending) tag linked list
-  TagLL advancingLL;//advancing (increasing startOffset) tag linked list.
 
-  TagLL(FST<Long> fst, int startOffset) {
-    super(fst);
+  /** optional boolean used by some TagClusterReducer's */
+  boolean mark = false;
+
+  TagLL(TagLL[] head, MyFstCursor<Long> cursor, int startOffset, int endOffset, Long value) {
+    this.head = head;
+    this.cursor = cursor;
     this.startOffset = startOffset;
+    this.endOffset = endOffset;
+    this.value = value;
   }
 
   private MyFstCursor<Long> cursor() {
-    return this;
+    return cursor;
   }
 
   /**
-   * Advances this tag with "word" at offset "offset".  Not only is this tag
-   * advanced, but it will recursively do so to others in advancingLL.
+   * Advances this tag with "word" at offset "offset".  If this tag is not in
+   * an advancing state then it does nothing. If it is advancing and prior to
+   * advancing further it sees a value, then a non-advancing tag may be inserted
+   * into the LL as side-effect. If this returns false (it didn't advance) and
+   * if there is no value, then it will also be removed.
    *
-   * @param parent    The parent advancingLL chain to this tag.  If null then
-   *                  this tag is the head.
-   * @param word      The next word (FST ord surrogate), possibly -1 which won't
-   *                  advance.
+   * @param word      The next word (FST ord surrogate); not -1
    * @param offset    The last character in word's offset in the underlying
    *                  stream. If word is -1 then it's meaningless.
-   * @param subOffset The farthest endOffset above this in the advancingLL
-   *                  chain. -1 for none.
-   * @param subTags   Whether all intermediate tags should be generated.
-   * @param output    Where generated tags should go.  @return The tag to take
-   *                  this tag's place in the advancingLL chain, pending
-   *                  completion of this method. Returning "this" makes no
-   *                  change; returning the result of the next
-   *                  advancingLL.advance() will remove this tag.
-   * @throws IOException
+   *
+   * @return          Whether it advanced or not.
+   *
+   * @throws java.io.IOException
    */
-  TagLL advance(TagLL parent, int word, int offset, int subOffset, boolean subTags, TagReceiver output) throws IOException {
-    assert word < 0 || subOffset <= offset;
-    if (word >= 0 && subOffset == offset) {
-      //because our furthest tag is not competitive
-      endOffset = -1;
-      value = null;
-      pendingLL = null;
-    }
+  boolean advance(int word, int offset) throws IOException {
+    if (!isAdvancing())
+      return false;
+
+    Long iVal = cursor().getValue();
 
     if (word >= 0 && cursor().nextByLabel(word)) {
-      //---- advances ----
 
-      if ((subTags || subOffset != offset) && cursor().hasValue()) {
-        endOffset = offset;
-        value = cursor().getValue();
-        pendingLL = null;
-        if (subTags) {
-          output.receiveTag(this);
-          endOffset = -1;
-          value = null;
-        }
+      if (iVal != null) {
+        addBeforeLL(new TagLL(head, null, startOffset, endOffset, iVal));
       }
-      if (advancingLL != null)
-        advancingLL = advancingLL.advance(this, word, offset, Math.max(subOffset, endOffset), subTags, output);
-      return this;//keeps "this" tag in the advancing linked-list
 
+      assert offset >= endOffset;
+      endOffset = offset;
+      return true;
     } else {
-      //---- does not advance ----
-
-      if (parent == null) {
-        //head:
-        if (value != null)
-          output.receiveTag(this);
-        for (TagLL pendingI = pendingLL; pendingI != null; pendingI = pendingI.pendingLL)
-          output.receiveTag(pendingI);
-
-      } else {
-        //non-head:
-        TagLL lastParentPending = parent;
-        //walk to the end
-        while (lastParentPending.pendingLL != null)
-          lastParentPending = lastParentPending.pendingLL;
-        // append this
-        lastParentPending.pendingLL = (value != null ? this : pendingLL);
-
-      }
-
-      //(we remove "this" tag from the advancing linked-list)
-      if (advancingLL != null)
-        return advancingLL.advance(parent, word, offset, Math.max(subOffset, endOffset), subTags, output);
-      return null;
+      this.value = iVal;
+      this.cursor = null;
+      if (iVal == null)
+        removeLL();
+      return false;
     }
-  }//advance()
+  }
 
-  void addToTail(TagLL tailTag) {
-    TagLL i = this;
-    while (i.advancingLL != null)
-      i = i.advancingLL;
-    i.advancingLL = tailTag;
+  /** Removes this tag from the chain, connecting prevTag and nextTag. Does not modify "this" object's pointers,
+   * so the caller can refer to nextTag after removing it. */
+  void removeLL() {
+    if (head[0] == this)
+      head[0] = nextTag;
+    if (prevTag != null) {
+      prevTag.nextTag = nextTag;
+    }
+    if (nextTag != null) {
+      nextTag.prevTag = prevTag;
+    }
+  }
+
+  void addBeforeLL(TagLL tag) {
+    assert tag.startOffset <= startOffset;
+    if (prevTag != null) {
+      assert prevTag.startOffset <= tag.startOffset;
+      prevTag.nextTag = tag;
+      tag.prevTag = prevTag;
+    } else {
+      assert head[0] == this;
+      head[0] = tag;
+    }
+    prevTag = tag;
+    tag.nextTag = this;
+  }
+
+  void addAfterLL(TagLL tag) {
+    assert tag.startOffset >= startOffset;
+    if (nextTag != null) {
+      assert nextTag.startOffset >= tag.startOffset;
+      nextTag.prevTag = tag;
+      tag.nextTag = nextTag;
+    }
+    nextTag = tag;
+    tag.prevTag = this;
+  }
+
+  int charLen() {
+    return endOffset - startOffset;
+  }
+
+  boolean overlaps(TagLL other) {
+    //don't use >= or <= because startOffset is inclusive while endOffset is exclusive
+    if (startOffset < other.startOffset)
+      return endOffset > other.startOffset;
+    else
+      return startOffset < other.endOffset;
+  }
+
+  boolean isAdvancing() {
+    return cursor != null;
+  }
+
+  @Override
+  public String toString() {
+    return startOffset + "-" + endOffset + (isAdvancing() ? " ..." : " #" + value);
   }
 }

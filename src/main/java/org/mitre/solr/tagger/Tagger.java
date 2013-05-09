@@ -49,10 +49,10 @@ public abstract class Tagger {
   private final TermToBytesRefAttribute byteRefAtt;
   private final OffsetAttribute offsetAtt;
 
-  private final boolean subTags;
+  private final TagClusterReducer tagClusterReducer;
 
   public Tagger(TaggerFstCorpus corpus, Analyzer analyzer, Reader reader,
-                boolean subTags) throws IOException {
+                TagClusterReducer tagClusterReducer) throws IOException {
     this.corpus = corpus;
     tokenStream = analyzer.tokenStream("", reader);
     //termAtt = tokenStream.addAttribute(CharTermAttribute.class);
@@ -61,44 +61,72 @@ public abstract class Tagger {
     offsetAtt = tokenStream.addAttribute(OffsetAttribute.class);
     tokenStream.reset();
 
-    this.subTags = subTags;
+    this.tagClusterReducer = tagClusterReducer;
   }
 
   public void process() throws IOException {
-    final TagReceiver output = new TagReceiver() {
-      @Override
-      public void receiveTag(TagLL tag) {
-        tagCallback(tag.startOffset, tag.endOffset, tag.value);
+
+    //a shared pointer to the head used by this method and each Tag instance.
+    final TagLL[] head = new TagLL[1];
+
+    MyFstCursor<Long> cursor = null;
+
+    boolean incrementedToken;
+    int lastStartOffset = -1;
+    do {
+      incrementedToken = tokenStream.incrementToken();
+
+      //sanity-check that start offsets don't decrease
+      if (incrementedToken && lastStartOffset > offsetAtt.startOffset())
+        throw new IllegalStateException("startOffset must be >= the one before: "+lastStartOffset);
+      lastStartOffset = offsetAtt.startOffset();
+
+      //-- Lookup the term id from the next token
+      int termId = incrementedToken ? getTermIdFromByteRef() : -1;
+
+      //-- Advance tags
+      final int endOffset = incrementedToken ? offsetAtt.endOffset() : -1;
+      boolean anyAdvance = false;
+      for (TagLL t = head[0]; t != null; t = t.nextTag) {
+        anyAdvance |= t.advance(termId, endOffset);
       }
-    };
 
-    TagLL head = null;
-    while (tokenStream.incrementToken()) {
-      //--Lookup the term id from the next token
-      int termId = getTermIdFromByteRef();
-
-      //-- Create and add a tail tag
-      if (termId >= 0) {
-        //determine if the FST has the term as a start state
-        // TODO use a cached bitset of starting termIds so we can avoid creating & adding tailTag
-        TagLL tailTag = new TagLL(corpus.getPhrases(), offsetAtt.startOffset());
-        if (head == null) {
-          head = tailTag;
-        } else {
-          head.addToTail(tailTag);
+      //-- Process cluster if done
+      if (!anyAdvance && head[0] != null) {
+        tagClusterReducer.reduce(head);
+        for (TagLL t = head[0]; t != null; t = t.nextTag) {
+          tagCallback(t.startOffset, t.endOffset, t.value);
         }
+        head[0] = null;
       }
 
-      //-- Advance the tags
-      if (head != null)
-        head = head.advance(null, termId, offsetAtt.endOffset(), -1, subTags, output);
+      //-- Create a new tag and try to advance it
+      if (termId >= 0) {
 
-    }//end while incrementToken()
+        //determine if the FST has the term as a start state
+        // TODO use a cached bitset of starting termIds, which is faster than a failed FST advance which is common
+        if (cursor == null)
+          cursor = new MyFstCursor<Long>(corpus.getPhrases());
+        if (cursor.nextByLabel(termId)) {
+          TagLL newTail = new TagLL(head, cursor, offsetAtt.startOffset(), endOffset, null);
+          cursor = null;//because we can't share it with the next iteration
+          //and add it to the end
+          if (head[0] == null) {
+            head[0] = newTail;
+          } else {
+            for (TagLL t = head[0]; true; t = t.nextTag) {
+              if (t.nextTag == null) {
+                t.addAfterLL(newTail);
+                break;
+              }
+            }
+          }
+        }
+      }//if termId >= 0
 
-    //--Finish tags in progress
-    if (head != null)
-      head = head.advance(null, -1, -1, -1, subTags, output);
-    assert head == null;
+    } while (incrementedToken);//end while incrementToken()
+
+    assert head[0] == null;
 
     tokenStream.end();
     tokenStream.close();
