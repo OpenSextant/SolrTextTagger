@@ -38,7 +38,7 @@ public interface TagClusterReducer {
     }
   };
 
-  static final TagClusterReducer OVERLAP = new TagClusterReducer() {
+  static final TagClusterReducer NO_SUB = new TagClusterReducer() {
     @Override
     public void reduce(TagLL[] head) {
       //loop forward over all tags

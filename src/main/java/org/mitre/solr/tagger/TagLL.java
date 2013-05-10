@@ -159,6 +159,7 @@ class TagLL{
 
   @Override
   public String toString() {
-    return startOffset + "-" + endOffset + (isAdvancing() ? " ..." : " #" + value);
+    return (prevTag != null ? '*' : '-') + "|" + (nextTag != null ? '*' : '-') +
+        " " + startOffset + " to " + endOffset + (isAdvancing() ? '+' : " #" + value);
   }
 }

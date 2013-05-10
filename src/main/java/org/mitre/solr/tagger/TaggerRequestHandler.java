@@ -63,7 +63,7 @@ public class TaggerRequestHandler extends RequestHandlerBase {
   /** Request parameter. */
   public static final String TAGS_LIMIT = "tagsLimit";
   /** Request parameter. */
-  public static final String SUB_TAGS = "subTags";
+  public static final String SUB_TAGS = "subTags";//deprecated
   private static final String MATCH_TEXT = "matchText";
 
   private TaggerFstCorpus _corpus;//synchronized access
@@ -77,11 +77,15 @@ public class TaggerRequestHandler extends RequestHandlerBase {
 
     final TagClusterReducer tagClusterReducer;
     String overlaps = req.getParams().get(OVERLAPS);
-    if (overlaps == null) {
-      if (req.getParams().getBool(SUB_TAGS, false))
+    if (overlaps == null) {//deprecated; should always be specified
+      if (req.getParams().getBool(SUB_TAGS, false))//deprecated
         tagClusterReducer = TagClusterReducer.ALL;
       else
-        tagClusterReducer = TagClusterReducer.OVERLAP;
+        tagClusterReducer = TagClusterReducer.NO_SUB;
+    } else if (overlaps.equals("ALL")) {
+      tagClusterReducer = TagClusterReducer.ALL;
+    } else if (overlaps.equals("NO_SUB")) {
+      tagClusterReducer = TagClusterReducer.NO_SUB;
     } else if (overlaps.equals("LONGEST_DOMINANT_RIGHT")) {
       tagClusterReducer = TagClusterReducer.LONGEST_DOMINANT_RIGHT;
     } else {

@@ -108,15 +108,12 @@ For tagging, you HTTP POST data to Solr similar to how the ExtractingRequestHand
 (Tika) is invoked.  A request invoked via the "curl" program could look like this:
 
 curl -XPOST \
-  'http://localhost:8983/solr/tag?subTags=false&tagsLimit=5000&fl=*' \
+  'http://localhost:8983/solr/tag?overlaps=NO_SUB&tagsLimit=5000&fl=*' \
   -H 'Content-Type:text/plain' -d @/mypath/myfile.txt
 
 The tagger request-time parameters are:
- * subTags: A boolean indicating whether tags that are WITHIN other tags should
- be emitted.  For example, if enabled, the input "New York" would match against
- corpus entries for "York" and "New York".  This can generate a lot more tags
- than you want, and arguably lesser quality ones, depending on the application.
- This option is false by default.
+ * overlaps: choose the algorithm to determine which overlapping tags should be
+ retained, versus being pruned away.  See below...
  * matchText: A boolean indicating whether to return the matched text in the tag
  response.
  * tagsLimit: The maximum number of tags to return in the response.  Tagging
@@ -126,6 +123,14 @@ The tagger request-time parameters are:
  * fl: Solr's standard param for listing the fields to return.
  * Most other standard parameters for working with Solr response formatting:
  echoParams, wt, indent, etc.
+
+overlaps:
+ ALL: Emit all tags.
+ NO_SUB: Don't emit a tag that is completely within another tag (i.e. no subtag).
+ LONGEST_DOMINANT_RIGHT: Given a cluster of overlapping tags, emit the longest
+  one (by character length). If there is a tie, pick the right-most. Remove
+  any tags overlapping with this tag then repeat the algorithm to potentially
+  find other tags that can be emitted in the cluster.
 
 The output is broken down into two parts, first an array of tags, and then
 Solr documents referenced by those tags.  Each tag has the starting character
