@@ -4,7 +4,7 @@ export JAVA_OPTS="-Dsolr.solr.home=../Gazetteer/SolrHome -Dsolr.data.dir=/Volume
 ./updateSolr.sh '/update?update.contentType=text/csv&optimize=true&separator=%09&trim=on&f.SOURCE_FEATURE_ID.map=1.0:1&f.SOURCE_NAME_ID.map=1.0:1' '/tag?build=true' < /Volumes/Speedy/Merged.txt
 
 ### Run tagger (not embedded)
-curl -XPOST 'http://localhost:8983/solr/tag?subTags=true&tagsLimit=5000&fl=*&wt=json&indent=2' -H 'Content-Type:text/plain' -d 'We drove to Byrds Creek. Then we'
+curl -XPOST 'http://localhost:8983/solr/tag?overlaps=ALL&tagsLimit=5000&fl=*&wt=json&indent=2' -H 'Content-Type:text/plain' -d 'We drove to Byrds Creek. Then we'
 or -d '@myfile.txt'
 
-curl -XPOST 'http://localhost:8983/solr/tag?subTags=false&tagsLimit=5000&fl=id,name&wt=json&indent=2' -H 'Content-Type:text/plain' -d 'We drove to Byrds Creek. Then we'
+curl -XPOST 'http://localhost:8983/solr/tag?overlaps=NO_SUB&tagsLimit=5000&fl=id,name&wt=json&indent=2' -H 'Content-Type:text/plain' -d 'We drove to Byrds Creek. Then we'

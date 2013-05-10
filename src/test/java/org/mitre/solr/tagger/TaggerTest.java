@@ -54,7 +54,7 @@ import java.util.*;
 public class TaggerTest extends SolrTestCaseJ4 {
 
   private String requestHandler;//qt param
-  private boolean subTags;
+  private String overlaps;//param
 
   private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -95,6 +95,8 @@ public class TaggerTest extends SolrTestCaseJ4 {
   private ModifiableSolrParams newParams(String... moreParams) {
     ModifiableSolrParams params = new ModifiableSolrParams();
     params.set(CommonParams.QT, requestHandler);
+    assert this.overlaps != null;
+    params.set("overlaps", this.overlaps);
     addMoreParams(params, moreParams);
     return params;
   }
@@ -103,7 +105,7 @@ public class TaggerTest extends SolrTestCaseJ4 {
   public void setUp() throws Exception {
     super.setUp();//TODO
     requestHandler = "/tag";
-    subTags = false;//the default any way
+    overlaps = null;
   }
 
   /** Name corpus */
@@ -127,6 +129,7 @@ public class TaggerTest extends SolrTestCaseJ4 {
   @Test
   public void testFormat() throws Exception {
     requestHandler = "/tagPartial";
+    overlaps = "NO_SUB";
     indexAndBuild();
 
     String rspStr = _testFormatRequest(false);
@@ -148,6 +151,7 @@ public class TaggerTest extends SolrTestCaseJ4 {
   @Test
   public void testFormatMatchText() throws Exception {
     requestHandler = "/tagPartial";
+    overlaps = "NO_SUB";
     indexAndBuild();
 
     String rspStr = _testFormatRequest(true);
@@ -179,6 +183,7 @@ public class TaggerTest extends SolrTestCaseJ4 {
   /** Partial matching, no sub-tags */
   public void testPartialMatching() throws Exception {
     requestHandler = "/tagPartial";
+    overlaps = "NO_SUB";
     indexAndBuild();
 
     //these match nothing
@@ -214,6 +219,7 @@ public class TaggerTest extends SolrTestCaseJ4 {
   @Test
   /** whole matching, no sub-tags */
   public void testWholeMatching() throws Exception {
+    overlaps = "NO_SUB";
     indexAndBuild();
 
     //these match nothing
@@ -254,7 +260,7 @@ public class TaggerTest extends SolrTestCaseJ4 {
   @Test
   /** whole matching, with sub-tags */
   public void testSubTags() throws Exception {
-    subTags = true;
+    overlaps = "ALL";
     indexAndBuild();
 
     //these match nothing
@@ -342,7 +348,6 @@ public class TaggerTest extends SolrTestCaseJ4 {
   private SolrQueryRequest reqDoc(String doc, String... moreParams) {
     log.debug("Test doc: "+doc);
     ModifiableSolrParams params = newParams(moreParams);
-    params.add("subTags",subTags+"");
     SolrQueryRequestBase req = new SolrQueryRequestBase(h.getCore(), params) {};
     Iterable<ContentStream> stream = Collections.singleton((ContentStream)new ContentStreamBase.StringStream(doc));
     req.setContentStreams(stream);
