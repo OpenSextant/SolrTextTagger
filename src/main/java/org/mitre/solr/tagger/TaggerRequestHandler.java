@@ -28,7 +28,10 @@ import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.index.ReaderUtil;
 import org.apache.lucene.queries.function.FunctionValues;
 import org.apache.lucene.queries.function.ValueSource;
-import org.apache.lucene.search.*;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.Sort;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.IntsRef;
 import org.apache.lucene.util.OpenBitSet;
@@ -161,11 +164,12 @@ public class TaggerRequestHandler extends RequestHandlerBase {
           if (schemaDocIds != null)
             return schemaDocIds;
           IntsRef docIds = lookupDocIds(docIdsKey);
+          //translate lucene docIds to schema ids
           schemaDocIds = new ArrayList(docIds.length);
           for (int i = docIds.offset; i < docIds.offset + docIds.length; i++) {
             int docId = docIds.ints[i];
-            matchDocIds.set(docId);
-            schemaDocIds.add(uniqueKeyCache.objectVal(docId));
+            matchDocIds.set(docId);//also, flip docid in bitset
+            schemaDocIds.add(uniqueKeyCache.objectVal(docId));//translates here
           }
           docIdsListCache.put(docIdsKey, schemaDocIds);
           return schemaDocIds;
@@ -181,11 +185,10 @@ public class TaggerRequestHandler extends RequestHandlerBase {
     ReturnFields returnFields = new SolrReturnFields( req );
     rsp.setReturnFields( returnFields );
 
-    SortField sortField = idSchemaField.getSortField(true);
     DocList docs = searcher.getDocList(
         new MatchAllDocsQuery(),
         new BitDocSet(matchDocIds),
-        new Sort(sortField), 0, rows);
+        Sort.INDEXORDER, 0, rows);
     rsp.add("matchingDocs",docs);
   }
 
