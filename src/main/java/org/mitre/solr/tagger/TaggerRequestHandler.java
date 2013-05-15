@@ -28,10 +28,9 @@ import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.index.ReaderUtil;
 import org.apache.lucene.queries.function.FunctionValues;
 import org.apache.lucene.queries.function.ValueSource;
+import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.Query;
-import org.apache.lucene.search.Sort;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.IntsRef;
 import org.apache.lucene.util.OpenBitSet;
@@ -130,7 +129,7 @@ public class TaggerRequestHandler extends RequestHandlerBase {
     }
 
     final SolrIndexSearcher searcher = req.getSearcher();
-    final OpenBitSet matchDocIds = new OpenBitSet(searcher.maxDoc());
+    final OpenBitSet matchDocIdsBS = new OpenBitSet(searcher.maxDoc());
     final List tags = new ArrayList(2000);
 
     try {
@@ -148,7 +147,7 @@ public class TaggerRequestHandler extends RequestHandlerBase {
           if (addMatchText)
             tag.add("matchText", bufferedInput.substring(startOffset,
                 endOffset));
-          //below caches, and also flags matchDocIds
+          //below caches, and also flags matchDocIdsBS
           tag.add("ids", lookupSchemaDocIds(docIdsKey));
           tags.add(tag);
         }
@@ -168,7 +167,7 @@ public class TaggerRequestHandler extends RequestHandlerBase {
           schemaDocIds = new ArrayList(docIds.length);
           for (int i = docIds.offset; i < docIds.offset + docIds.length; i++) {
             int docId = docIds.ints[i];
-            matchDocIds.set(docId);//also, flip docid in bitset
+            matchDocIdsBS.set(docId);//also, flip docid in bitset
             schemaDocIds.add(uniqueKeyCache.objectVal(docId));//translates here
           }
           docIdsListCache.put(docIdsKey, schemaDocIds);
@@ -185,11 +184,21 @@ public class TaggerRequestHandler extends RequestHandlerBase {
     ReturnFields returnFields = new SolrReturnFields( req );
     rsp.setReturnFields( returnFields );
 
-    DocList docs = searcher.getDocList(
-        new MatchAllDocsQuery(),
-        new BitDocSet(matchDocIds),
-        Sort.INDEXORDER, 0, rows);
-    rsp.add("matchingDocs",docs);
+    //Now we must supply a Solr DocList and add it to the response.
+    //  Typically this is gotten via a SolrIndexSearcher.search(), but in this case we
+    //  know exactly what documents to return, the order doesn't matter nor does
+    //  scoring.
+    //  Ideally an implementation of DocList could be directly implemented off
+    //  of a BitSet, but there are way too many methods to implement for a minor
+    //  payoff.
+    int matchDocs = (int) matchDocIdsBS.cardinality();
+    int[] docIds = new int[ Math.min(rows, matchDocs) ];
+    DocIdSetIterator docIdIter = matchDocIdsBS.iterator();
+    for (int i = 0; i < docIds.length; i++) {
+      docIds[i] = docIdIter.nextDoc();
+    }
+    DocList docs = new DocSlice(0, docIds.length, docIds, null, matchDocs, 1f);
+    rsp.add("matchingDocs", docs);
   }
 
   /** Gets the corpus if it's ready and not stale, otherwise initializes it. */
