@@ -308,6 +308,7 @@ public class TaggerTest extends SolrTestCaseJ4 {
     try {
       Arrays.sort(aTags);
       SolrQueryResponse rsp = h.queryAndResponse(req.getParams().get(CommonParams.QT, requestHandler), req);
+      assertNotNull(rsp.getResponseHeader().get("QTime"));
       NamedList rspValues = rsp.getValues();
 
       //build matchingNames map from matchingDocs doc list in response
