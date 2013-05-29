@@ -139,10 +139,10 @@ public class TaggerTest extends SolrTestCaseJ4 {
         "<arr name=\"tags\"><lst>" +
           "<int name=\"startOffset\">0</int>" +
           "<int name=\"endOffset\">6</int>" +
-          "<arr name=\"ids\"><int>1</int></arr>" +
+          "<arr name=\"ids\"><str>1</str></arr>" +
         "</lst></arr>" +
         "<result name=\"matchingDocs\" numFound=\"1\" start=\"0\">" +
-          "<doc><int name=\"id\">1</int><str name=\"name\">London Business School</str></doc>" +
+          "<doc><str name=\"id\">1</str><str name=\"name\">London Business School</str></doc>" +
         "</result>\n" +
         "</response>\n";
     assertEquals(expected, rspStr);
@@ -162,10 +162,10 @@ public class TaggerTest extends SolrTestCaseJ4 {
           "<int name=\"startOffset\">0</int>" +
           "<int name=\"endOffset\">6</int><" +
           "str name=\"matchText\">school</str>" +
-          "<arr name=\"ids\"><int>1</int></arr>" +
+          "<arr name=\"ids\"><str>1</str></arr>" +
         "</lst></arr>" +
         "<result name=\"matchingDocs\" numFound=\"1\" start=\"0\">" +
-          "<doc><int name=\"id\">1</int><str name=\"name\">London Business School</str></doc>" +
+          "<doc><str name=\"id\">1</str><str name=\"name\">London Business School</str></doc>" +
         "</result>\n" +
         "</response>\n";
     assertEquals(expected, rspStr);
@@ -312,16 +312,16 @@ public class TaggerTest extends SolrTestCaseJ4 {
       NamedList rspValues = rsp.getValues();
 
       //build matchingNames map from matchingDocs doc list in response
-      Map<Integer,N> matchingNames = new HashMap<Integer, N>();
+      Map<String, N> matchingNames = new HashMap<String, N>();
       SolrIndexSearcher searcher = req.getSearcher();
       DocList docList = (DocList) rspValues.get("matchingDocs");
       DocIterator iter = docList.iterator();
       while (iter.hasNext()) {
         int docId = iter.next();
         Document doc = searcher.doc(docId);
-        Integer id = (Integer) doc.getField("id").numericValue();
+        String id = doc.getField("id").stringValue();
         N name = N.lookupByName(doc.get("name"));
-        assert name.getId() == id.intValue();
+        assertEquals(name.getId()+"", id);
         matchingNames.put(id, name);
       }
 
@@ -330,8 +330,8 @@ public class TaggerTest extends SolrTestCaseJ4 {
       TestTag[] mTags = new TestTag[mTagsList.size()];
       int mt_i = 0;
       for (NamedList map : mTagsList) {
-        List<Integer> foundIds = (List<Integer>) map.get("ids");
-        for (Integer id  : foundIds) {
+        List<String> foundIds = (List<String>) map.get("ids");
+        for (String id  : foundIds) {
           mTags[mt_i++] = new TestTag(
               ((Number)map.get("startOffset")).intValue(),
               ((Number)map.get("endOffset")).intValue(),

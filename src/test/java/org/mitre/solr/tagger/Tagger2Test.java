@@ -171,16 +171,16 @@ public class Tagger2Test extends SolrTestCaseJ4 {
       NamedList rspValues = rsp.getValues();
 
       //build matchingNames map from matchingDocs doc list in response
-      Map<Integer,String> matchingNames = new HashMap<Integer, String>();
+      Map<String, String> matchingNames = new HashMap<String, String>();
       SolrIndexSearcher searcher = req.getSearcher();
       DocList docList = (DocList) rspValues.get("matchingDocs");
       DocIterator iter = docList.iterator();
       while (iter.hasNext()) {
         int docId = iter.next();
         Document doc = searcher.doc(docId);
-        Integer id = (Integer) doc.getField("id").numericValue();
+        String id = doc.getField("id").stringValue();
         String name = lookupByName(doc.get("name"));
-        assert NAMES.indexOf(name) == id.intValue();
+        assertEquals(NAMES.indexOf(name)+"", id);
         matchingNames.put(id, name);
       }
 
@@ -189,8 +189,8 @@ public class Tagger2Test extends SolrTestCaseJ4 {
       TestTag[] mTags = new TestTag[mTagsList.size()];
       int mt_i = 0;
       for (NamedList map : mTagsList) {
-        List<Integer> foundIds = (List<Integer>) map.get("ids");
-        for (Integer id  : foundIds) {
+        List<String> foundIds = (List<String>) map.get("ids");
+        for (String id  : foundIds) {
           mTags[mt_i++] = new TestTag(
               ((Number)map.get("startOffset")).intValue(),
               ((Number)map.get("endOffset")).intValue(),
