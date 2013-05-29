@@ -33,8 +33,7 @@ Configuration
 ======== Configuration
 
 A Solr schema.xml needs:
- * A unique key field  (see <uniqueKey>).  Presently it must be an integer.  See
-   OPENSEXTANT-73
+ * A unique key field  (see <uniqueKey>).
  * A place name field marked as "stored".
  * A place name field indexed with word tokenization and other desired text
  analysis suitable for matching input text against the corpus.
