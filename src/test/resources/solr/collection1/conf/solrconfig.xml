@@ -39,4 +39,6 @@
     <str name="fq">NOT name:(of the)</str><!-- filter out -->
   </requestHandler>
 
+  <requestHandler name="/update" class="solr.UpdateRequestHandler" />
+
 </config>
