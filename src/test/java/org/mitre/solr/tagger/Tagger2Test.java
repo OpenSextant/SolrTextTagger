@@ -124,6 +124,19 @@ public class Tagger2Test extends SolrTestCaseJ4 {
 
   }
 
+  @Test
+  /** posInc > 1 https://github.com/OpenSextant/SolrTextTagger/issues/2 */
+  public void testPosIncJump() throws Exception {
+    this.overlaps = "LONGEST_DOMINANT_RIGHT";
+    StringBuilder tmp = new StringBuilder(40);//40 exceeds configured max token length
+    for (int i = 0; i < 40; i++) {
+      tmp.append((char)('0' + (i % 10)));
+    }
+    String SANFRAN = "San Francisco";
+    buildNames(SANFRAN);
+    assertTags(tmp.toString()+" "+SANFRAN, SANFRAN);
+  }
+
   private void assertTags(String doc, String... tags) throws Exception {
     TestTag[] tts = new TestTag[tags.length];
     for (int i = 0; i < tags.length; i++) {
@@ -133,7 +146,8 @@ public class Tagger2Test extends SolrTestCaseJ4 {
   }
 
   private List<String> NAMES;
-  private void buildNames(String... names) {
+  private void buildNames(String... names) throws Exception {
+    deleteByQueryAndGetVersion("*:*", null);
     NAMES = Arrays.asList(names);
     Collections.sort(NAMES);
     int i = 0;
@@ -180,7 +194,7 @@ public class Tagger2Test extends SolrTestCaseJ4 {
         Document doc = searcher.doc(docId);
         String id = doc.getField("id").stringValue();
         String name = lookupByName(doc.get("name"));
-        assertEquals(NAMES.indexOf(name)+"", id);
+        assertEquals("looking for "+name, NAMES.indexOf(name)+"", id);
         matchingNames.put(id, name);
       }
 

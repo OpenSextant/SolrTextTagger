@@ -71,34 +71,29 @@ public abstract class Tagger {
 
     MyFstCursor<Long> cursor = null;
 
-    boolean incrementedToken;
     int lastStartOffset = -1;
-    do {
-      incrementedToken = tokenStream.incrementToken();
+
+    while (tokenStream.incrementToken()) {
 
       //sanity-check that start offsets don't decrease
-      if (incrementedToken && lastStartOffset > offsetAtt.startOffset())
+      if (lastStartOffset > offsetAtt.startOffset())
         throw new IllegalStateException("startOffset must be >= the one before: "+lastStartOffset);
       lastStartOffset = offsetAtt.startOffset();
 
+      //-- If PositionIncrement > 1 then finish all tags
+      int posInc = posIncAtt.getPositionIncrement();
+      if (posInc < 1) {
+        throw new IllegalStateException("term: " + byteRefAtt.getBytesRef().utf8ToString()
+            + " analyzed to a token with posinc < 1: "+posInc);
+      } else if (posInc > 1) {
+        advanceTagsAndProcessClusterIfDone(head, -1);
+      }
+
       //-- Lookup the term id from the next token
-      int termId = incrementedToken ? getTermIdFromByteRef() : -1;
+      int termId = getTermIdFromByteRef();
 
-      //-- Advance tags
-      final int endOffset = incrementedToken ? offsetAtt.endOffset() : -1;
-      boolean anyAdvance = false;
-      for (TagLL t = head[0]; t != null; t = t.nextTag) {
-        anyAdvance |= t.advance(termId, endOffset);
-      }
-
-      //-- Process cluster if done
-      if (!anyAdvance && head[0] != null) {
-        tagClusterReducer.reduce(head);
-        for (TagLL t = head[0]; t != null; t = t.nextTag) {
-          tagCallback(t.startOffset, t.endOffset, t.value);
-        }
-        head[0] = null;
-      }
+      //-- Process tag
+      advanceTagsAndProcessClusterIfDone(head, termId);
 
       //-- Create a new tag and try to advance it
       if (termId >= 0) {
@@ -108,7 +103,7 @@ public abstract class Tagger {
         if (cursor == null)
           cursor = new MyFstCursor<Long>(corpus.getPhrases());
         if (cursor.nextByLabel(termId)) {
-          TagLL newTail = new TagLL(head, cursor, offsetAtt.startOffset(), endOffset, null);
+          TagLL newTail = new TagLL(head, cursor, offsetAtt.startOffset(), offsetAtt.endOffset(), null);
           cursor = null;//because we can't share it with the next iteration
           //and add it to the end
           if (head[0] == null) {
@@ -123,13 +118,32 @@ public abstract class Tagger {
           }
         }
       }//if termId >= 0
+    }//end while(incrementToken())
 
-    } while (incrementedToken);//end while incrementToken()
-
+    //-- Finish all tags
+    advanceTagsAndProcessClusterIfDone(head, -1);
     assert head[0] == null;
 
     tokenStream.end();
     tokenStream.close();
+  }
+
+  private void advanceTagsAndProcessClusterIfDone(TagLL[] head, int termId) throws IOException {
+    //-- Advance tags
+    final int endOffset = termId != -1 ? offsetAtt.endOffset() : -1;
+    boolean anyAdvance = false;
+    for (TagLL t = head[0]; t != null; t = t.nextTag) {
+      anyAdvance |= t.advance(termId, endOffset);
+    }
+
+    //-- Process cluster if done
+    if (!anyAdvance && head[0] != null) {
+      tagClusterReducer.reduce(head);
+      for (TagLL t = head[0]; t != null; t = t.nextTag) {
+        tagCallback(t.startOffset, t.endOffset, t.value);
+      }
+      head[0] = null;
+    }
   }
 
   private int getTermIdFromByteRef() {
@@ -139,10 +153,7 @@ public abstract class Tagger {
     if (length == 0) {
       throw new IllegalArgumentException("term: " + bytesRef.utf8ToString() + " analyzed to a zero-length token");
     }
-    if (posIncAtt.getPositionIncrement() != 1) {
-      throw new IllegalArgumentException("term: " + bytesRef.utf8ToString() + " analyzed to a token with posinc != 1");
-    }
-    return corpus.lookupTermId(bytesRef);
+    return corpus.lookupTermId(bytesRef);//-1 if not found
   }
 
   /**

@@ -46,7 +46,9 @@
 
   <fieldType name="tag" class="solr.TextField" positionIncrementGap="100" >
     <analyzer>
-      <tokenizer class="solr.StandardTokenizerFactory"/><!-- TODO consider WordDelimiterFilter -->
+      <tokenizer class="solr.StandardTokenizerFactory"
+                 maxTokenLength="32"/><!-- 32 just for tests, bumps posInc -->
+      <!-- TODO consider WordDelimiterFilter -->
       <filter class="solr.ASCIIFoldingFilterFactory"/>
       <filter class="solr.LowerCaseFilterFactory" />
     </analyzer>

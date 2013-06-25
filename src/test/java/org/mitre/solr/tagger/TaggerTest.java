@@ -72,6 +72,7 @@ public class TaggerTest extends SolrTestCaseJ4 {
   }
 
   private void indexAndBuild(String... buildParams) throws Exception {
+    deleteAndGetVersion("*:*", null);
     addCorpus();
     assertU(commit());
 
