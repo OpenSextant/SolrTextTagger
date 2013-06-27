@@ -57,7 +57,7 @@ Here is a sample field type config that should work quite well:
     </analyzer>
   </fieldType>
 
-When defining a field that indexed with this type, you can choose to set
+When defining a field that's indexed with this type, you can choose to set
 omitTermFreqAndPositions="true" omitNorms="true" since the tagger doesn't need
 them.  That said, if you intend to do general keyword search on this field, then
 you should not exclude those stats.
@@ -86,22 +86,16 @@ A Solr solrconfig.xml needs a special request handler, configured like this:
 
 ======== Usage
 
-At first, the tagger needs to build an expensive data structure consisting of
-a couple of FSTs.  It reads the index data to build its data structure.  For
-~10M place names, this took up to 2GB of working RAM and 5 minutes on a beefy server,
-ultimately yielding a ~175MB data structure (same size on disk as in RAM).
-Ideally this is saved to disk via the cacheFile option, so that if Solr is
-restarted, it can simply read this file into memory.  If Solr's index is modified,
-then the tagger's data is old, so to bring it up to date it needs to be completely
-rebuilt.  This is similar to Solr's spellchecker feature, the non-direct
-configuration prior to Solr 4.
-
-To build the tagger data, invoke Solr like this:
-http://localhost:8983/solr/tag?build=true
-That effectively forces a build/rebuild of the tagger's data. If it is never
-manually built like this, then the first time a document is tagged as described
-below, then that first request will be hit with this building tax -- probably
-a bad thing.
+The tagger needs to build a data structure from the index consisting mostly of
+a couple of FSTs.  For ~10M place names, this used ~2GB of working RAM and ~5
+minutes on a beefy server, ultimately yielding a ~175MB data structure (same
+size on disk as in RAM).  Ideally this is saved to disk via the cacheFile
+option, so that if Solr is restarted, it can simply read this file into memory.
+If Solr's index is modified (committed), then the tagger will rebuild itself
+at the next request for tagging, incurring a delay.  To move that computation
+from the first tagging request to following a commit or optimize, you can
+explicitly build the tagger data at an appropriate time with this URL:
+  http://localhost:8983/solr/tag?build=true
 
 For tagging, you HTTP POST data to Solr similar to how the ExtractingRequestHandler
 (Tika) is invoked.  A request invoked via the "curl" program could look like this:
@@ -118,12 +112,12 @@ The tagger request-time parameters are:
  * tagsLimit: The maximum number of tags to return in the response.  Tagging
  effectively stops after this point.  By default this is 1000.
  * rows: Solr's standard param to say the maximum number of documents to return,
- but defaulting to 10000.
+ but defaulting to 10000 for a tag request.
  * fl: Solr's standard param for listing the fields to return.
  * Most other standard parameters for working with Solr response formatting:
  echoParams, wt, indent, etc.
 
-overlaps:
+Options for the "overlaps" parameter:
  ALL: Emit all tags.
  NO_SUB: Don't emit a tag that is completely within another tag (i.e. no subtag).
  LONGEST_DOMINANT_RIGHT: Given a cluster of overlapping tags, emit the longest
