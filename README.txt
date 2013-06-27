@@ -38,13 +38,16 @@ A Solr schema.xml needs:
  * A place name field indexed with word tokenization and other desired text
  analysis suitable for matching input text against the corpus.
 
-The only requirement for the text analysis is that the words must be at consecutive
-positions (i.e. the position increment of each term must always be 1).  So be
-careful with use of stop words, synonyms, WordDelimiterFilter, and potentially
-others.  You'll get a hard error from the TaggerFstCorpus when this is violated
-when the FST is "built".  It's plausible that this restriction might be lifted
-in the future but it is tricky -- see this for more info:
-http://blog.mikemccandless.com/2012/04/lucenes-tokenstreams-are-actually.html
+The only requirement for the text analysis is that the words must be at
+consecutive positions (i.e. the position increment of each term must always be
+1).  So, be careful with use of stop words, synonyms, WordDelimiterFilter, and
+potentially others.  You'll get a hard error from the TaggerFstCorpus when this
+is violated when the FST is "built".  On the other hand, if the input text
+has a position increment greater than one (such as a token exceeding the default
+max character length of 255) then it is handled properly.  It's plausible that
+this restriction might be lifted in the future but it is tricky -- see this for
+more info:
+  http://blog.mikemccandless.com/2012/04/lucenes-tokenstreams-are-actually.html
 
 Here is a sample field type config that should work quite well:
 
