@@ -20,7 +20,7 @@
  limitations under the License.
  */
 
-package org.mitre.solr.tagger;
+package net.opensextant.solrtexttagger;
 
 import org.apache.commons.lang.builder.CompareToBuilder;
 import org.apache.commons.lang.builder.EqualsBuilder;
@@ -49,7 +49,7 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 
 /**
- * Test the {@link org.mitre.solr.tagger.TaggerRequestHandler}.
+ * Test the {@link net.opensextant.solrtexttagger.TaggerRequestHandler}.
  */
 public class Tagger2Test extends SolrTestCaseJ4 {
 

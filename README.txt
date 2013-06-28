@@ -67,7 +67,7 @@ you should not exclude those stats.
 
 A Solr solrconfig.xml needs a special request handler, configured like this:
 
-  <requestHandler name="/tag" class="org.mitre.solr.tagger.TaggerRequestHandler">
+  <requestHandler name="/tag" class="net.opensextant.solrtexttagger.TaggerRequestHandler">
     <str name="indexedField">name_tagIdx</str>
     <str name="storedField">name</str>
     <bool name="partialMatches">false</bool>

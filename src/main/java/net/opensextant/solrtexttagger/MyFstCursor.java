@@ -20,7 +20,7 @@
  limitations under the License.
  */
 
-package org.mitre.solr.tagger;
+package net.opensextant.solrtexttagger;
 
 import org.apache.lucene.util.fst.FST;
 

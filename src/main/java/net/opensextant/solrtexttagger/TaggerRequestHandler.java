@@ -20,7 +20,7 @@
  limitations under the License.
  */
 
-package org.mitre.solr.tagger;
+package net.opensextant.solrtexttagger;
 
 import com.google.common.io.CharStreams;
 import org.apache.lucene.analysis.Analyzer;

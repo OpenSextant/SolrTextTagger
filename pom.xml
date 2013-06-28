@@ -30,7 +30,7 @@
     <relativePath />
   </parent>
 
-  <groupId>org.mitre.opensextant</groupId>
+  <groupId>net.opensextant</groupId>
   <artifactId>solr-text-tagger</artifactId>
   <version>1.1.1-SNAPSHOT</version>
   <packaging>jar</packaging>
@@ -131,7 +131,7 @@
           <!--<extraJvmArguments>-Xmx2G</extraJvmArguments>-->
           <!--<programs>-->
             <!--<program>-->
-              <!--<mainClass>org.mitre.opensextant.solr.loader.EmbeddedSolrUpdater</mainClass>-->
+              <!--<mainClass>onet.opensextant.solrtexttagger.EmbeddedSolrUpdater</mainClass>-->
               <!--<name>updateSolr</name>-->
             <!--</program>-->
           <!--</programs>-->
