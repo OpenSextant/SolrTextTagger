@@ -20,7 +20,7 @@
  limitations under the License.
  */
 
-package net.opensextant.solrtexttagger;
+package org.opensextant.solrtexttagger;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;

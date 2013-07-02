@@ -30,14 +30,14 @@
   <directoryFactory name="DirectoryFactory" class="${solr.directoryFactory:solr.RAMDirectoryFactory}"/>
   <!--<requestHandler name="/select" class="solr.SearchRequestHandler"></requestHandler>-->
 
-  <requestHandler name="/tag" class="net.opensextant.solrtexttagger.TaggerRequestHandler">
+  <requestHandler name="/tag" class="org.opensextant.solrtexttagger.TaggerRequestHandler">
     <str name="indexedField">name_tagIdx</str>
     <str name="storedField">name</str>
     <bool name="partialMatches">false</bool>
     <str name="fq">NOT name:(of the)</str><!-- filter out -->
   </requestHandler>
 
-  <requestHandler name="/tagPartial" class="net.opensextant.solrtexttagger.TaggerRequestHandler">
+  <requestHandler name="/tagPartial" class="org.opensextant.solrtexttagger.TaggerRequestHandler">
     <str name="indexedField">name_tagIdx</str>
     <str name="storedField">name</str>
     <bool name="partialMatches">true</bool>

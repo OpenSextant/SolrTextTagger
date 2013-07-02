@@ -20,7 +20,7 @@
  limitations under the License.
  */
 
-package net.opensextant.solrtexttagger;
+package org.opensextant.solrtexttagger;
 
 import org.apache.commons.lang.builder.CompareToBuilder;
 import org.apache.commons.lang.builder.EqualsBuilder;
@@ -49,7 +49,7 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 
 /**
- * Test the {@link net.opensextant.solrtexttagger.TaggerRequestHandler}.
+ * Test the {@link org.opensextant.solrtexttagger.TaggerRequestHandler}.
  */
 public class TaggerTest extends SolrTestCaseJ4 {
 

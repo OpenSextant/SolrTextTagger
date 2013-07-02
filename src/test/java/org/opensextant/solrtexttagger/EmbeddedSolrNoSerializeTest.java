@@ -20,7 +20,7 @@
  limitations under the License.
  */
 
-package net.opensextant.solrtexttagger;
+package org.opensextant.solrtexttagger;
 
 import org.apache.solr.SolrTestCaseJ4;
 import org.apache.solr.client.solrj.SolrServerException;

@@ -20,7 +20,7 @@
  limitations under the License.
  */
 
-package net.opensextant.solrtexttagger;
+package org.opensextant.solrtexttagger;
 
 /**
  * @author David Smiley - dsmiley@mitre.org

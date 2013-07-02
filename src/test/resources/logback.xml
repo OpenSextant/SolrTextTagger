@@ -33,9 +33,9 @@
     </encoder>
   </appender>
 
-  <!--<logger name="net.opensextant.solrtexttagger" level="DEBUG"/>-->
+  <!--<logger name="org.opensextant.solrtexttagger" level="DEBUG"/>-->
   <logger name="org.apache.solr" level="ERROR"/>
-  <logger name="net.opensextant.solrtexttagger.TaggerTest" level="DEBUG"/>
+  <logger name="org.opensextant.solrtexttagger.TaggerTest" level="DEBUG"/>
 
   <root level="INFO">
     <appender-ref ref="STDOUT" />

@@ -19,7 +19,7 @@
  See the License for the specific language governing permissions and
  limitations under the License.
  */
-package net.opensextant.solrtexttagger;
+package org.opensextant.solrtexttagger;
 
 import org.apache.solr.client.solrj.SolrRequest;
 import org.apache.solr.client.solrj.SolrServer;

@@ -23,4 +23,4 @@
 /**
  * The classes in this package implement OpenSextant's Solr-based tagger.
  */
-package net.opensextant.solrtexttagger;
+package org.opensextant.solrtexttagger;
