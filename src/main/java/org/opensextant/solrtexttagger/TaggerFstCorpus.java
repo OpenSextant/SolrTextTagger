@@ -169,10 +169,19 @@ class TaggerFstCorpus implements Serializable {
       if (docBits != null && !docBits.get(docId))
         continue;
       final Document document = reader.document(docId, fieldNames);
-
+      
       IndexableField storedField = document.getField(storedFieldName);
-      if (storedField == null)
-        throw new RuntimeException("docId "+docId+" field '"+ storedFieldName+"': missing stored value");
+      if (storedField == null) {
+          //Issue #5: in multilingual setting there will be entities that do not have a
+          //          labels for all languages. In this case the storedField will be
+          //          null. However 
+          //TODO: To check if the parsed field is Stored one should check the Schema
+          //      of the Index
+//            throw new RuntimeException("docId "+docId+" field '"+ storedFieldName+"': missing stored value");
+          //use a trace level logging instead
+          log.trace("docId {} has no (stored) value for field '{}':", docId,storedFieldName);
+          continue;
+      }
       String phraseStr = storedField.stringValue();
 
       //analyze stored value to array of terms (their Ids)
@@ -214,6 +223,15 @@ class TaggerFstCorpus implements Serializable {
           log.info("Total records reviewed COUNT="+ totalDocIdRefs);
       }
     }//for each doc
+    //TODO: this write a warning if not a single stored field was found for the
+    //      parsed storedFieldName - as this will most likely indicate a wrong
+    //      schema configuration.
+    //      This should be replace by an explicit check against the schema.
+    if(totalDocIdRefs == 0 && reader.maxDoc() > 0){
+        log.warn("No stored valued for field '{}' in {} processed Documents. Please check "
+            + "Solr Schema configuration and ensure that this field is stored!", 
+            storedFieldName,reader.maxDoc());
+    }
 
     log.debug("Phrase working set has "+workingSet.size()+" entries, "+ totalDocIdRefs +" id references.");
     return workingSet;
