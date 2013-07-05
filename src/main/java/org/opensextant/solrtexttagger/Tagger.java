@@ -48,17 +48,19 @@ public abstract class Tagger {
   private final PositionIncrementAttribute posIncAtt;
   private final TermToBytesRefAttribute byteRefAtt;
   private final OffsetAttribute offsetAtt;
+  private final LookupAttribute lookupAtt;
 
   private final TagClusterReducer tagClusterReducer;
 
-  public Tagger(TaggerFstCorpus corpus, Analyzer analyzer, Reader reader,
+  public Tagger(TaggerFstCorpus corpus, TokenStream tokenStream,
                 TagClusterReducer tagClusterReducer) throws IOException {
     this.corpus = corpus;
-    tokenStream = analyzer.tokenStream("", reader);
+    this.tokenStream = tokenStream;
     //termAtt = tokenStream.addAttribute(CharTermAttribute.class);
     byteRefAtt = tokenStream.addAttribute(TermToBytesRefAttribute.class);
     posIncAtt = tokenStream.addAttribute(PositionIncrementAttribute.class);
     offsetAtt = tokenStream.addAttribute(OffsetAttribute.class);
+    lookupAtt = tokenStream.addAttribute(LookupAttribute.class);
     tokenStream.reset();
 
     this.tagClusterReducer = tagClusterReducer;
@@ -89,14 +91,22 @@ public abstract class Tagger {
         advanceTagsAndProcessClusterIfDone(head, -1);
       }
 
-      //-- Lookup the term id from the next token
-      int termId = getTermIdFromByteRef();
-
+      final int termId;
+      //NOTE: we need to lookup tokens if
+      // * the LookupAtt is true OR
+      // * there are still advancing tags (to find the longest possible match)
+      if(lookupAtt.isLookup() || head[0] != null){
+        //-- Lookup the term id from the next token
+        termId = getTermIdFromByteRef();
+      } else { //no current cluster AND lookup == false ... 
+        termId = -1; //skip this token
+      }
+      
       //-- Process tag
       advanceTagsAndProcessClusterIfDone(head, termId);
 
-      //-- Create a new tag and try to advance it
-      if (termId >= 0) {
+      //-- only create new Tags for Tokens we need to lookup
+      if (lookupAtt.isLookup() && termId >= 0) {
 
         //determine if the FST has the term as a start state
         // TODO use a cached bitset of starting termIds, which is faster than a failed FST advance which is common
