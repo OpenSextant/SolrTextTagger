@@ -11,7 +11,7 @@ import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
  * Simple TokenFilter that lookup only Tokens with more as the parsed number
  * of chars.<p>
  * <b>NOTE:</b>This implementation is only intended to be used as an example 
- * and for unit testing the {@link LookupAttribute} feature. Typically 
+ * and for unit testing the {@link TaggingAttribute} feature. Typically 
  * implementations will be based on NLP results (e.g. using POS tags or
  * detected Named Entities).
  *  
@@ -47,13 +47,13 @@ import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
  * @author Rupert Westenthaler
  *
  */
-public class WordLengthLookupFilter extends TokenFilter {
+public class WordLengthTaggingFilter extends TokenFilter {
 
     /**
      * The default minimum length is <code>3</code>
      */
-    private static final int DEFAULT_MIN_LENGTH = 3;
-    private final LookupAttribute lookupAtt = addAttribute(LookupAttribute.class);
+    public static final int DEFAULT_MIN_LENGTH = 3;
+    private final TaggingAttribute lookupAtt = addAttribute(TaggingAttribute.class);
     private final OffsetAttribute offsetAtt = addAttribute(OffsetAttribute.class);
     private int minLength;
 
@@ -62,7 +62,7 @@ public class WordLengthLookupFilter extends TokenFilter {
      * {@link #DEFAULT_MIN_LENGTH} characters
      * @param input
      */
-    public WordLengthLookupFilter(TokenStream input) {
+    public WordLengthTaggingFilter(TokenStream input) {
         this(input,null);
     }
     /**
@@ -72,7 +72,7 @@ public class WordLengthLookupFilter extends TokenFilter {
      * @param minLength The minimum length to lookup a Token. <code>null</code>
      * or &lt;= 0 to use the #DEFAULT_MIN_LENGTH
      */
-    public WordLengthLookupFilter(TokenStream input, Integer minLength) {
+    public WordLengthTaggingFilter(TokenStream input, Integer minLength) {
         super(input);
         if(minLength == null || minLength <= 0){
             this.minLength = DEFAULT_MIN_LENGTH;
@@ -82,10 +82,10 @@ public class WordLengthLookupFilter extends TokenFilter {
     }
 
     @Override
-    public boolean incrementToken() throws IOException {
+    public final boolean incrementToken() throws IOException {
         if(input.incrementToken()){
             int size = offsetAtt.endOffset() - offsetAtt.startOffset();
-            lookupAtt.setLookup(size >= minLength);
+            lookupAtt.setTaggable(size >= minLength);
             return true;
         } else {
             return false;

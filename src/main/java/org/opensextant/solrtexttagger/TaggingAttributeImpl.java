@@ -3,24 +3,24 @@ package org.opensextant.solrtexttagger;
 import org.apache.lucene.util.AttributeImpl;
 
 /**
- * Implementation of the {@link LookupAttribute}
+ * Implementation of the {@link TaggingAttribute}
  *  
  * @author Rupert Westenthaler
  *
  */
-public class LookupAttributeImpl extends AttributeImpl implements LookupAttribute {
+public class TaggingAttributeImpl extends AttributeImpl implements TaggingAttribute {
 
     /**
-     * the private field initialised with {@link LookupAttribute#DEFAULT_LOOKUP}
+     * the private field initialised with {@link TaggingAttribute#DEFAULT_LOOKUP}
      */
-    private boolean lookup = LookupAttribute.DEFAULT_LOOKUP;
+    private boolean lookup = TaggingAttribute.DEFAULT_LOOKUP;
     
     /*
      * (non-Javadoc)
      * @see org.opensextant.solrtexttagger.LookupAttribute#isLookup()
      */
     @Override
-    public boolean isLookup() {
+    public boolean isTaggable() {
         return lookup;
     }
     /*
@@ -28,7 +28,7 @@ public class LookupAttributeImpl extends AttributeImpl implements LookupAttribut
      * @see org.opensextant.solrtexttagger.LookupAttribute#setLookup(boolean)
      */
     @Override
-    public void setLookup(boolean lookup) {
+    public void setTaggable(boolean lookup) {
         this.lookup = lookup;
     }
     /*
@@ -46,7 +46,7 @@ public class LookupAttributeImpl extends AttributeImpl implements LookupAttribut
      */
     @Override
     public void copyTo(AttributeImpl target) {
-        ((LookupAttribute)target).setLookup(lookup);
+        ((TaggingAttribute)target).setTaggable(lookup);
     }
     
 }
