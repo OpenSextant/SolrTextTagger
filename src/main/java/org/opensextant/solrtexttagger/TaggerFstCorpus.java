@@ -49,7 +49,7 @@ import java.util.Set;
  *
  * @author David Smiley - dsmiley@mitre.org
  */
-class TaggerFstCorpus implements Serializable {
+public class TaggerFstCorpus implements Serializable {
 
   private static final Logger log = LoggerFactory.getLogger(TaggerFstCorpus.class);
 
