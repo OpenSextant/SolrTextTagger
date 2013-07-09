@@ -26,51 +26,50 @@ import org.apache.lucene.util.AttributeImpl;
 
 /**
  * Implementation of the {@link TaggingAttribute}
- *  
- * @author Rupert Westenthaler
  *
+ * @author Rupert Westenthaler
  */
 public class TaggingAttributeImpl extends AttributeImpl implements TaggingAttribute {
 
-    /**
-     * the private field initialised with {@link TaggingAttribute#DEFAULT_TAGGABLE}
-     */
-    private boolean taggable = TaggingAttribute.DEFAULT_TAGGABLE;
-    
-    /*
-     * (non-Javadoc)
-     * @see org.opensextant.solrtexttagger.LookupAttribute#isLookup()
-     */
-    @Override
-    public boolean isTaggable() {
-        return taggable;
-    }
+  /**
+   * the private field initialised with {@link TaggingAttribute#DEFAULT_TAGGABLE}
+   */
+  private boolean taggable = TaggingAttribute.DEFAULT_TAGGABLE;
 
-    /*
-     * (non-Javadoc)
-     * @see org.opensextant.solrtexttagger.LookupAttribute#setLookup(boolean)
-     */
-    @Override
-    public void setTaggable(boolean lookup) {
-        this.taggable = lookup;
-    }
+  /*
+   * (non-Javadoc)
+   * @see org.opensextant.solrtexttagger.LookupAttribute#isLookup()
+   */
+  @Override
+  public boolean isTaggable() {
+    return taggable;
+  }
 
-    /*
-     * (non-Javadoc)
-     * @see org.apache.lucene.util.AttributeImpl#clear()
-     */
-    @Override
-    public void clear() {
-        taggable = DEFAULT_TAGGABLE;
-    }
+  /*
+   * (non-Javadoc)
+   * @see org.opensextant.solrtexttagger.LookupAttribute#setLookup(boolean)
+   */
+  @Override
+  public void setTaggable(boolean lookup) {
+    this.taggable = lookup;
+  }
 
-    /*
-     * (non-Javadoc)
-     * @see org.apache.lucene.util.AttributeImpl#copyTo(org.apache.lucene.util.AttributeImpl)
-     */
-    @Override
-    public void copyTo(AttributeImpl target) {
-        ((TaggingAttribute)target).setTaggable(taggable);
-    }
-    
+  /*
+   * (non-Javadoc)
+   * @see org.apache.lucene.util.AttributeImpl#clear()
+   */
+  @Override
+  public void clear() {
+    taggable = DEFAULT_TAGGABLE;
+  }
+
+  /*
+   * (non-Javadoc)
+   * @see org.apache.lucene.util.AttributeImpl#copyTo(org.apache.lucene.util.AttributeImpl)
+   */
+  @Override
+  public void copyTo(AttributeImpl target) {
+    ((TaggingAttribute) target).setTaggable(taggable);
+  }
+
 }

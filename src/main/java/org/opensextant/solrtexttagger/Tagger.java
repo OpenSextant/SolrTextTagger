@@ -22,7 +22,6 @@
 
 package org.opensextant.solrtexttagger;
 
-import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
 import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
@@ -31,7 +30,6 @@ import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.IntsRef;
 
 import java.io.IOException;
-import java.io.Reader;
 
 /**
  * Tags maximum string of words in a corpus.  This is a callback-style API

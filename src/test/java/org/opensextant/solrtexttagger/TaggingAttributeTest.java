@@ -70,8 +70,8 @@ public class TaggingAttributeTest extends SolrTestCaseJ4 {
 
   @BeforeClass
   public static void beforeClass() throws Exception {
-      //NOTE: We use the TaggingAttribute specific condifiguration
-      initCore("solrconfig.xml", "schema.xml","taggingattribute");
+    //NOTE: We use the TaggingAttribute specific condifiguration
+    initCore("solrconfig.xml", "schema.xml", "taggingattribute");
   }
 
   private void build(String... buildParams) {
@@ -82,7 +82,7 @@ public class TaggingAttributeTest extends SolrTestCaseJ4 {
 
   private SolrQueryRequest req(SolrParams params) {
     NamedList<Object> nl = params.toNamedList();
-    String[] strs = new String[nl.size()*2];
+    String[] strs = new String[nl.size() * 2];
     int i = 0;
     for (Map.Entry entry : nl) {
       strs[i++] = entry.getKey().toString();
@@ -108,15 +108,15 @@ public class TaggingAttributeTest extends SolrTestCaseJ4 {
   }
 
   @Test
-  /** 
+  /**
    * Whole matching, no sub-tags. Links only words with > 3 letters.
    * Because of that "San" is not used to start tags
-   * 
+   *
    */
   public void testTaggingAttribute() throws Exception {
     // this test is based on the longest dominant right test, so we use the
     // the same TagClusterReducer setting
-    this.overlaps = "LONGEST_DOMINANT_RIGHT"; 
+    this.overlaps = "LONGEST_DOMINANT_RIGHT";
 
     buildNames("in", "San", "in San", "Francisco", "San Francisco",
         "San Francisco State College", "College of California",
@@ -128,10 +128,10 @@ public class TaggingAttributeTest extends SolrTestCaseJ4 {
 
     assertTags("He enrolled in San Francisco State College of California",
         //"in", "San Francisco State College"); //without taggable enabled
-            "Francisco", "College of California");// With taggable
-        //NOTE this also tests that started tags are advanced for non-taggable
-        //     tokens, as otherwise 'College of California' would not be
-        //     suggested.
+        "Francisco", "College of California");// With taggable
+    //NOTE this also tests that started tags are advanced for non-taggable
+    //     tokens, as otherwise 'College of California' would not be
+    //     suggested.
 
     assertTags("He lived in Clayton North Carolina",
         //"in", "Clayton", "North Carolina");
@@ -148,17 +148,19 @@ public class TaggingAttributeTest extends SolrTestCaseJ4 {
   }
 
   private List<String> NAMES;
+
   private void buildNames(String... names) throws Exception {
     deleteByQueryAndGetVersion("*:*", null);
     NAMES = Arrays.asList(names);
     Collections.sort(NAMES);
     int i = 0;
     for (String n : NAMES) {
-      assertU(adoc("id", ""+(i++), "name", n));
+      assertU(adoc("id", "" + (i++), "name", n));
     }
     assertU(commit());
     build();
   }
+
   private String lookupByName(String name) {
     for (String n : NAMES) {
       if (n.equalsIgnoreCase(name))
@@ -170,20 +172,23 @@ public class TaggingAttributeTest extends SolrTestCaseJ4 {
   private TestTag tt(String doc, String substring) {
     int startOffset = -1, endOffset;
     int substringIndex = 0;
-    for(int i = 0; i <= substringIndex; i++) {
-      startOffset = doc.indexOf(substring,++startOffset);
+    for (int i = 0; i <= substringIndex; i++) {
+      startOffset = doc.indexOf(substring, ++startOffset);
       assert startOffset >= 0 : "The test itself is broken";
     }
-    endOffset = startOffset+substring.length();//1 greater (exclusive)
+    endOffset = startOffset + substring.length();//1 greater (exclusive)
     return new TestTag(startOffset, endOffset, substring, lookupByName(substring));
   }
 
-  /** Asserts the tags.  Will call req.close(). */
+  /**
+   * Asserts the tags.  Will call req.close().
+   */
   @SuppressWarnings("unchecked")
   private void assertTags(SolrQueryRequest req, TestTag... aTags) throws Exception {
     try {
       Arrays.sort(aTags);
-      SolrQueryResponse rsp = h.queryAndResponse(req.getParams().get(CommonParams.QT, requestHandler), req);
+      SolrQueryResponse rsp = h.queryAndResponse(req.getParams().get(CommonParams.QT,
+          requestHandler), req);
       NamedList rspValues = rsp.getValues();
 
       //build matchingNames map from matchingDocs doc list in response
@@ -196,7 +201,7 @@ public class TaggingAttributeTest extends SolrTestCaseJ4 {
         Document doc = searcher.doc(docId);
         String id = doc.getField("id").stringValue();
         String name = lookupByName(doc.get("name"));
-        assertEquals("looking for "+name, NAMES.indexOf(name)+"", id);
+        assertEquals("looking for " + name, NAMES.indexOf(name) + "", id);
         matchingNames.put(id, name);
       }
 
@@ -206,10 +211,10 @@ public class TaggingAttributeTest extends SolrTestCaseJ4 {
       int mt_i = 0;
       for (NamedList map : mTagsList) {
         List<String> foundIds = (List<String>) map.get("ids");
-        for (String id  : foundIds) {
+        for (String id : foundIds) {
           mTags[mt_i++] = new TestTag(
-              ((Number)map.get("startOffset")).intValue(),
-              ((Number)map.get("endOffset")).intValue(),
+              ((Number) map.get("startOffset")).intValue(),
+              ((Number) map.get("endOffset")).intValue(),
               null,
               matchingNames.get(id));
         }
@@ -220,20 +225,24 @@ public class TaggingAttributeTest extends SolrTestCaseJ4 {
     }
   }
 
-  /** REMEMBER to close() the result req object. */
+  /**
+   * REMEMBER to close() the result req object.
+   */
   private SolrQueryRequest reqDoc(String doc, String... moreParams) {
-    log.debug("Test doc: "+doc);
+    log.debug("Test doc: " + doc);
     ModifiableSolrParams params = newParams(moreParams);
-    SolrQueryRequestBase req = new SolrQueryRequestBase(h.getCore(), params) {};
-    Iterable<ContentStream> stream = Collections.singleton((ContentStream)new ContentStreamBase.StringStream(doc));
+    SolrQueryRequestBase req = new SolrQueryRequestBase(h.getCore(), params) {
+    };
+    Iterable<ContentStream> stream = Collections.singleton((ContentStream) new ContentStreamBase
+        .StringStream(doc));
     req.setContentStreams(stream);
     return req;
   }
 
   private static void addMoreParams(ModifiableSolrParams params, String[] moreParams) {
     if (moreParams != null) {
-      for (int i = 0; i < moreParams.length; i+= 2) {
-        params.add(moreParams[i], moreParams[i+1]);
+      for (int i = 0; i < moreParams.length; i += 2) {
+        params.add(moreParams[i], moreParams[i + 1]);
       }
     }
   }
@@ -254,8 +263,8 @@ public class TaggingAttributeTest extends SolrTestCaseJ4 {
     public String toString() {
       return "TestTag{" +
           "[" + startOffset + "-" + endOffset + "]" +
-          " docName=(" + NAMES.indexOf(docName)+")" + docName +
-          " substr="+substring+
+          " docName=(" + NAMES.indexOf(docName) + ")" + docName +
+          " substr=" + substring +
           '}';
     }
 
@@ -280,7 +289,7 @@ public class TaggingAttributeTest extends SolrTestCaseJ4 {
       return new CompareToBuilder()
           .append(this.startOffset, that.startOffset)
           .append(this.endOffset, that.endOffset)
-          .append(this.docName,that.docName)
+          .append(this.docName, that.docName)
           .toComparison();
     }
   }
