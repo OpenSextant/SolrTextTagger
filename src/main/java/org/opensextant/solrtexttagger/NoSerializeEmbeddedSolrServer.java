@@ -37,7 +37,6 @@ import org.apache.solr.search.DocList;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.Iterator;
 import java.util.Map;
 
 /**
@@ -52,44 +51,50 @@ public class NoSerializeEmbeddedSolrServer extends EmbeddedSolrServer {
     super(coreContainer, coreName);
   }
 
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({"unchecked", "deprecation"})
   @Override
   public NamedList<Object> getParsedResponse(SolrQueryRequest req,
                                              SolrQueryResponse rsp) {
     //return super.getParsedResponse(req, rsp);
     NamedList<Object> result = rsp.getValues();
-    Iterator<Map.Entry<String, Object>> iter = result.iterator();
-    while (iter.hasNext()) {
-      Map.Entry<String, Object> entry = iter.next();
-      if (entry.getValue() instanceof DocList) {
+    for (Map.Entry entry : result) {
+      if (entry.getValue() instanceof ResultContext) {
+        ResultContext ctx = (ResultContext) entry.getValue();
+        entry.setValue(luceneDocListToSolrDocList(req, rsp, ctx.docs));
+      } else if (entry.getValue() instanceof DocList) {
         DocList docList = (DocList) entry.getValue();
-        final SolrDocumentList solrDocumentList = new SolrDocumentList();
-        entry.setValue(solrDocumentList);
-        solrDocumentList.setNumFound(docList.matches());
-        solrDocumentList.setStart(docList.offset());
-        solrDocumentList.setMaxScore(docList.maxScore());
-
-        BinaryResponseWriter.Resolver resolver = new BinaryResponseWriter.Resolver(req, rsp.getReturnFields());
-        ResultContext ctx = new ResultContext();
-        ctx.docs = docList;
-        try {
-          resolver.writeResults(ctx, new JavaBinCodec(resolver) {
-            {
-              daos = new FastOutputStream(new ByteArrayOutputStream());//dummy
-            }
-
-            @Override
-            public void writeSolrDocument(SolrDocument doc) throws IOException {
-              solrDocumentList.add(doc);
-            }
-          });
-        } catch (IOException e) {
-          throw new RuntimeException(e);
-        }
+        entry.setValue(luceneDocListToSolrDocList(req, rsp, docList));
       }//if DocList
     }//loop
 
     return result;
+  }
+
+  private SolrDocumentList luceneDocListToSolrDocList(SolrQueryRequest req, SolrQueryResponse rsp, DocList docList) {
+    final SolrDocumentList solrDocumentList = new SolrDocumentList();
+    solrDocumentList.setNumFound(docList.matches());
+    solrDocumentList.setStart(docList.offset());
+    solrDocumentList.setMaxScore(docList.maxScore());
+
+    BinaryResponseWriter.Resolver resolver =
+        new BinaryResponseWriter.Resolver(req, rsp.getReturnFields());
+    ResultContext ctx = new ResultContext();
+    ctx.docs = docList;
+    try {
+      resolver.writeResults(ctx, new JavaBinCodec(resolver) {
+        {
+          daos = new FastOutputStream(new ByteArrayOutputStream());//dummy
+        }
+
+        @Override
+        public void writeSolrDocument(SolrDocument doc) throws IOException {
+          solrDocumentList.add(doc);
+        }
+      });
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+    return solrDocumentList;
   }
 
 

@@ -55,15 +55,15 @@ public class EmbeddedSolrNoSerializeTest extends SolrTestCaseJ4 {
     initCore("solrconfig.xml", "schema.xml");
     solrServer = new NoSerializeEmbeddedSolrServer(h.getCoreContainer(), null);
     //we don't need to close the EmbeddedSolrServer because SolrTestCaseJ4 closes the core
+    clearIndex();
   }
 
   @Test
-  public void test() throws SolrServerException, IOException {
-    clearIndex();
+  public void testTag() throws SolrServerException, IOException {
     assertU(adoc("id", "9999", "name", "Boston"));
     assertU(commit());
 
-    ModifiableSolrParams params = new ModifiableSolrParams();
+    ModifiableSolrParams params = params();
     String input = "foo boston bar";//just one tag;
     QueryRequest req = new SolrTaggerRequest(params, input);
     req.setPath("/tag");
@@ -89,5 +89,14 @@ public class EmbeddedSolrNoSerializeTest extends SolrTestCaseJ4 {
       return Collections.singleton((ContentStream) new ContentStreamBase
           .StringStream(input));
     }
+  }
+
+  @Test
+  public void testSearch() throws SolrServerException {
+    assertU(adoc("id", "9999", "name", "Boston"));
+    assertU(commit());
+
+    QueryResponse rsp = solrServer.query(params("q", "name:Boston"));
+    assertNotNull(rsp.getResults().get(0));
   }
 }

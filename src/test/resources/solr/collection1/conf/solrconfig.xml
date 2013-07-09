@@ -28,7 +28,8 @@
   <luceneMatchVersion>${tests.luceneMatchVersion:LUCENE_CURRENT}</luceneMatchVersion>
   <dataDir>${solr.data.dir:}</dataDir>
   <directoryFactory name="DirectoryFactory" class="${solr.directoryFactory:solr.RAMDirectoryFactory}"/>
-  <!--<requestHandler name="/select" class="solr.SearchRequestHandler"></requestHandler>-->
+
+  <requestHandler name="/select" class="solr.SearchHandler"></requestHandler>
 
   <requestHandler name="/tag" class="org.opensextant.solrtexttagger.TaggerRequestHandler">
     <str name="indexedField">name_tagIdx</str>
