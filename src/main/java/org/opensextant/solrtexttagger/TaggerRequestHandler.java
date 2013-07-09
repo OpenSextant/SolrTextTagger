@@ -24,6 +24,7 @@ package org.opensextant.solrtexttagger;
 
 import com.google.common.io.CharStreams;
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.index.ReaderUtil;
 import org.apache.lucene.queries.function.FunctionValues;
@@ -134,8 +135,8 @@ public class TaggerRequestHandler extends RequestHandlerBase {
 
     try {
       Analyzer analyzer = req.getSchema().getField(indexedField).getType().getAnalyzer();
-
-      new Tagger(corpus, analyzer, reader, tagClusterReducer) {
+      TokenStream tokenStream = analyzer.tokenStream("", reader);
+      new Tagger(corpus, tokenStream, tagClusterReducer) {
         @SuppressWarnings("unchecked")
         @Override
         protected void tagCallback(int startOffset, int endOffset, long docIdsKey) {
