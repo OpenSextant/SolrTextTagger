@@ -25,7 +25,6 @@
   <contextListener class="ch.qos.logback.classic.jul.LevelChangePropagator"/>
 
   <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
-
     <!-- encoders are assigned the type
          ch.qos.logback.classic.encoder.PatternLayoutEncoder by default -->
     <encoder>
@@ -34,7 +33,8 @@
   </appender>
 
   <!--<logger name="org.opensextant.solrtexttagger" level="DEBUG"/>-->
-  <logger name="org.apache.solr" level="ERROR"/>
+  <logger name="org.apache.solr" level="WARN"/>
+  <!--<logger name="org.apache.solr.SolrTestCaseJ4" level="INFO"/>-->
   <logger name="org.opensextant.solrtexttagger.TaggerTest" level="DEBUG"/>
 
   <root level="INFO">
