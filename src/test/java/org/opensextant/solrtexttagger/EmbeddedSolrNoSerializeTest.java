@@ -33,6 +33,7 @@ import org.apache.solr.common.params.SolrParams;
 import org.apache.solr.common.util.ContentStream;
 import org.apache.solr.common.util.ContentStreamBase;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -47,22 +48,25 @@ import java.util.Collections;
  */
 public class EmbeddedSolrNoSerializeTest extends SolrTestCaseJ4 {
 
-  EmbeddedSolrServer solrServer;
+  static EmbeddedSolrServer solrServer;
+
+  @BeforeClass
+  public static void init() throws Exception {
+    initCore("solrconfig.xml", "schema.xml");
+    solrServer = new NoSerializeEmbeddedSolrServer(h.getCoreContainer(), null);
+    //we don't need to close the EmbeddedSolrServer because SolrTestCaseJ4 closes the core
+  }
 
   @Before
   public void setUp() throws Exception {
     super.setUp();
-    initCore("solrconfig.xml", "schema.xml");
-    solrServer = new NoSerializeEmbeddedSolrServer(h.getCoreContainer(), null);
-    //we don't need to close the EmbeddedSolrServer because SolrTestCaseJ4 closes the core
     clearIndex();
+    assertU(adoc("id", "9999", "name", "Boston"));
+    assertU(commit());
   }
 
   @Test
   public void testTag() throws SolrServerException, IOException {
-    assertU(adoc("id", "9999", "name", "Boston"));
-    assertU(commit());
-
     ModifiableSolrParams params = params();
     String input = "foo boston bar";//just one tag;
     QueryRequest req = new SolrTaggerRequest(params, input);
@@ -93,9 +97,6 @@ public class EmbeddedSolrNoSerializeTest extends SolrTestCaseJ4 {
 
   @Test
   public void testSearch() throws SolrServerException {
-    assertU(adoc("id", "9999", "name", "Boston"));
-    assertU(commit());
-
     QueryResponse rsp = solrServer.query(params("q", "name:Boston"));
     assertNotNull(rsp.getResults().get(0));
   }
