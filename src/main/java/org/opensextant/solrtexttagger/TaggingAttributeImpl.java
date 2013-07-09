@@ -1,3 +1,25 @@
+/*
+ This software was produced for the U. S. Government
+ under Contract No. W15P7T-11-C-F600, and is
+ subject to the Rights in Noncommercial Computer Software
+ and Noncommercial Computer Software Documentation
+ Clause 252.227-7014 (JUN 1995)
+
+ Copyright 2013 The MITRE Corporation. All Rights Reserved.
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+ */
+
 package org.opensextant.solrtexttagger;
 
 import org.apache.lucene.util.AttributeImpl;
@@ -11,9 +33,9 @@ import org.apache.lucene.util.AttributeImpl;
 public class TaggingAttributeImpl extends AttributeImpl implements TaggingAttribute {
 
     /**
-     * the private field initialised with {@link TaggingAttribute#DEFAULT_LOOKUP}
+     * the private field initialised with {@link TaggingAttribute#DEFAULT_TAGGABLE}
      */
-    private boolean lookup = TaggingAttribute.DEFAULT_LOOKUP;
+    private boolean taggable = TaggingAttribute.DEFAULT_TAGGABLE;
     
     /*
      * (non-Javadoc)
@@ -21,32 +43,34 @@ public class TaggingAttributeImpl extends AttributeImpl implements TaggingAttrib
      */
     @Override
     public boolean isTaggable() {
-        return lookup;
+        return taggable;
     }
+
     /*
      * (non-Javadoc)
      * @see org.opensextant.solrtexttagger.LookupAttribute#setLookup(boolean)
      */
     @Override
     public void setTaggable(boolean lookup) {
-        this.lookup = lookup;
+        this.taggable = lookup;
     }
+
     /*
      * (non-Javadoc)
      * @see org.apache.lucene.util.AttributeImpl#clear()
      */
     @Override
     public void clear() {
-        lookup = DEFAULT_LOOKUP;
-        
+        taggable = DEFAULT_TAGGABLE;
     }
+
     /*
      * (non-Javadoc)
      * @see org.apache.lucene.util.AttributeImpl#copyTo(org.apache.lucene.util.AttributeImpl)
      */
     @Override
     public void copyTo(AttributeImpl target) {
-        ((TaggingAttribute)target).setTaggable(lookup);
+        ((TaggingAttribute)target).setTaggable(taggable);
     }
     
 }
