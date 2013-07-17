@@ -24,9 +24,11 @@ package org.opensextant.solrtexttagger;
 
 import org.apache.solr.SolrTestCaseJ4;
 import org.apache.solr.client.solrj.SolrServerException;
+import org.apache.solr.client.solrj.StreamingResponseCallback;
 import org.apache.solr.client.solrj.embedded.EmbeddedSolrServer;
 import org.apache.solr.client.solrj.request.QueryRequest;
 import org.apache.solr.client.solrj.response.QueryResponse;
+import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrDocumentList;
 import org.apache.solr.common.params.ModifiableSolrParams;
 import org.apache.solr.common.params.SolrParams;
@@ -39,12 +41,15 @@ import org.junit.Test;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Tests that we can skip serialization of the documents when embedding
  * Solr.
  *
  * @author David Smiley - dsmiley@mitre.org
+ *
+ * @deprecated Simply use {@link StreamingResponseCallback} instead.
  */
 public class EmbeddedSolrNoSerializeTest extends SolrTestCaseJ4 {
 
@@ -99,5 +104,30 @@ public class EmbeddedSolrNoSerializeTest extends SolrTestCaseJ4 {
   public void testSearch() throws SolrServerException {
     QueryResponse rsp = solrServer.query(params("q", "name:Boston"));
     assertNotNull(rsp.getResults().get(0));
+  }
+
+  @Test
+  public void testTagStreaming() throws IOException, SolrServerException {
+    ModifiableSolrParams params = params();
+    String input = "foo boston bar";//just one tag;
+    QueryRequest req = new SolrTaggerRequest(params, input);
+    req.setPath("/tag");
+
+    final AtomicReference<SolrDocument> refDoc = new AtomicReference<SolrDocument>();
+    req.setStreamingResponseCallback(new StreamingResponseCallback() {
+      @Override
+      public void streamSolrDocument(SolrDocument doc) {
+        refDoc.set(doc);
+      }
+
+      @Override
+      public void streamDocListInfo(long numFound, long start, Float maxScore) {
+
+      }
+    });
+    QueryResponse rsp = req.process(solrServer);
+    assertNotNull(rsp.getResponse().get("tags"));
+    assertNotNull(refDoc.get());
+    assertEquals("Boston", refDoc.get().getFieldValue("name"));
   }
 }
