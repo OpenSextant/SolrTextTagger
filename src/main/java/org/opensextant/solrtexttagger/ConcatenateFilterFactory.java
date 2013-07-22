@@ -41,7 +41,7 @@ public class ConcatenateFilterFactory extends TokenFilterFactory {
   protected ConcatenateFilterFactory(Map<String, String> args) {
     super(args);
     tokenSeparator = get(args, "tokenSeparator", ShingleFilter.TOKEN_SEPARATOR);
-    if (tokenSeparator.length() != 0)
+    if (tokenSeparator.length() != 1)
       throw new IllegalArgumentException("tokenSeparator should be 1 char: "+tokenSeparator);
     if (!args.isEmpty()) {
       throw new IllegalArgumentException("Unknown parameters: " + args);
