@@ -74,6 +74,11 @@
       <version>${solr.version}</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.apache.lucene</groupId>
+      <artifactId>lucene-test-framework</artifactId>
+      <version>${solr.version}</version>
+    </dependency>
 
     <dependency>
       <groupId>org.apache.solr</groupId>
@@ -105,6 +110,7 @@
       <scope>runtime</scope>
       <optional>true</optional>
     </dependency>
+
 
   </dependencies>
 
