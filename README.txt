@@ -5,6 +5,9 @@ of any natural language context.  It operates on the results of how you
 configure text analysis in Lucene and so it's quite flexible to match things
 like phonetics for sounds-like tagging if you wanted to.
 
+If this sounds interesting, then watch this presentation about the SolrTextTagger
+given at Lucene Revolution 2013, by David Smiley: http://www.youtube.com/watch?v=3kQyYbTyXfc
+
 For more information on Lucene FSTs, the technological marvel that enables this
 component to keep ten millions place names in a structure that is a mere 175MB,
 see these resources:
