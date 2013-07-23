@@ -29,6 +29,7 @@ import org.apache.lucene.analysis.util.TokenFilterFactory;
 import java.util.Map;
 
 /**
+ * @see {@link ConcatenateFilter}.
  * @author David Smiley - dsmiley@mitre.org
  */
 public class ConcatenateFilterFactory extends TokenFilterFactory {
@@ -38,7 +39,7 @@ public class ConcatenateFilterFactory extends TokenFilterFactory {
   /**
    * Initialize this factory via a set of key-value pairs.
    */
-  protected ConcatenateFilterFactory(Map<String, String> args) {
+  public ConcatenateFilterFactory(Map<String, String> args) {
     super(args);
     tokenSeparator = get(args, "tokenSeparator", ShingleFilter.TOKEN_SEPARATOR);
     if (tokenSeparator.length() != 1)
