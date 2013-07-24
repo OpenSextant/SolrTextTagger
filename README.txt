@@ -35,27 +35,46 @@ Configuration
 
 ======== Configuration
 
-A Solr schema.xml needs:
+A Solr schema.xml needs 2 things:
  * A unique key field  (see <uniqueKey>).
- * A place name field marked as "stored".
- * A place name field indexed with word tokenization and other desired text
- analysis suitable for matching input text against the corpus.
+ * A name/lookup field indexed with Shingling or ConcatenateFilter.
 
-The only requirement for the text analysis is that the words must be at
+Assuming you want to support typical keyword search on the names, you'll index
+the names separately in another field with a different field type configuration than the
+configuration described here.
+The name field's index analyzer needs to end in either Shingling for "partial"
+(i.e. sub name phrase) matching, or more likely using ConcatenateFilter for full matching.
+Don't do it for the query time analysis. ConcatenateFilter acts similar to shingling but it
+concatenates all tokens into one final token with a space separator.
+
+For the indexed name data, the text analysis should result in
 consecutive positions (i.e. the position increment of each term must always be
 1).  So, be careful with use of stop words, synonyms, WordDelimiterFilter, and
-potentially others.  You'll get a hard error from the TaggerFstCorpus when this
-is violated when the FST is "built".  On the other hand, if the input text
-has a position increment greater than one (such as a token exceeding the default
-max character length of 255) then it is handled properly.  It's plausible that
+potentially others.  On the other hand, if the input text
+has a position increment greater than one then it is handled properly as if an
+unknown word was there.  It's plausible that
 this restriction might be lifted in the future but it is tricky -- see this for
 more info:
   http://blog.mikemccandless.com/2012/04/lucenes-tokenstreams-are-actually.html
 
+To make the tagger work as fast as possible, configure the name field with
+postingsFormat="Memory"; you'll have to add this to solrconfig.xml to use that
+advanced Solr feature:
+  <codecFactory name="CodecFactory" class="solr.SchemaCodecFactory" />
+
 Here is a sample field type config that should work quite well:
 
-  <fieldType name="tag" class="solr.TextField" positionIncrementGap="100" >
-    <analyzer>
+  <fieldType name="tag" class="solr.TextField" positionIncrementGap="100" postingsFormat="Memory"
+      omitTermFreqAndPositions="true" omitNorms="true">
+    <analyzer type="index">
+      <tokenizer class="solr.StandardTokenizerFactory"/>
+      <filter class="solr.EnglishPossessiveFilterFactory" />
+      <filter class="solr.ASCIIFoldingFilterFactory"/>
+      <filter class="solr.LowerCaseFilterFactory" />
+
+      <filter class="org.opensextant.solrtexttagger.ConcatenateFilterFactory" />
+    </analyzer>
+    <analyzer type="query">
       <tokenizer class="solr.StandardTokenizerFactory"/>
       <filter class="solr.EnglishPossessiveFilterFactory" />
       <filter class="solr.ASCIIFoldingFilterFactory"/>
@@ -63,45 +82,17 @@ Here is a sample field type config that should work quite well:
     </analyzer>
   </fieldType>
 
-When defining a field that's indexed with this type, you can choose to set
-omitTermFreqAndPositions="true" omitNorms="true" since the tagger doesn't need
-them.  That said, if you intend to do general keyword search on this field, then
-you should not exclude those stats.
-
 A Solr solrconfig.xml needs a special request handler, configured like this:
 
   <requestHandler name="/tag" class="org.opensextant.solrtexttagger.TaggerRequestHandler">
-    <str name="indexedField">name_tagIdx</str>
-    <str name="storedField">name</str>
-    <bool name="partialMatches">false</bool>
+    <str name="field">name_tag</str>
     <str name="fq">NOT name:(of the)</str><!-- filter out -->
-    <str name="cacheFile">taggerCache.dat</str>
   </requestHandler>
 
- * indexedField: The field that represents the corpus to match on, and that is
- indexed for tokenization.
- * storedField: (optional) Like indexedField but marked as "stored".  If
- unspecified then it is assumed to be indexedField.
- * partialMatches: A boolean that indicates whether partial word phrases should
- be considered a match for the name.  In other words, "York" would match "New
- York".
+ * field: The field that represents the corpus to match on, as described above.
  * fq: (optional) A query that matches the subset of documents for name matching.
- * cacheFile: The file name (in the data directory) where to persist the
- dictionary that gets built.  If unspecified then it won't be persisted, and
- thus when Solr starts up the expensive data structure will need to be re-built.
 
 ======== Usage
-
-The tagger needs to build a data structure from the index consisting mostly of
-a couple of FSTs.  For ~10M place names, this used ~2GB of working RAM and ~5
-minutes on a beefy server, ultimately yielding a ~175MB data structure (same
-size on disk as in RAM).  Ideally this is saved to disk via the cacheFile
-option, so that if Solr is restarted, it can simply read this file into memory.
-If Solr's index is modified (committed), then the tagger will rebuild itself
-at the next request for tagging, incurring a delay.  To move that computation
-from the first tagging request to following a commit or optimize, you can
-explicitly build the tagger data at an appropriate time with this URL:
-  http://localhost:8983/solr/tag?build=true
 
 For tagging, you HTTP POST data to Solr similar to how the ExtractingRequestHandler
 (Tika) is invoked.  A request invoked via the "curl" program could look like this:

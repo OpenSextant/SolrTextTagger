@@ -28,19 +28,14 @@
   <luceneMatchVersion>${tests.luceneMatchVersion:LUCENE_CURRENT}</luceneMatchVersion>
   <dataDir>${solr.data.dir:}</dataDir>
   <directoryFactory name="DirectoryFactory" class="${solr.directoryFactory:solr.RAMDirectoryFactory}"/>
+
+  <!-- for postingsFormat="Memory" -->
+  <codecFactory name="CodecFactory" class="solr.SchemaCodecFactory" />
+
   <!--<requestHandler name="/select" class="solr.SearchRequestHandler"></requestHandler>-->
 
   <requestHandler name="/tag" class="org.opensextant.solrtexttagger.TaggerRequestHandler">
-    <str name="indexedField">name_tagIdx</str>
-    <str name="storedField">name</str>
-    <bool name="partialMatches">false</bool>
-    <str name="fq">NOT name:(of the)</str><!-- filter out -->
-  </requestHandler>
-
-  <requestHandler name="/tagPartial" class="org.opensextant.solrtexttagger.TaggerRequestHandler">
-    <str name="indexedField">name_tagIdx</str>
-    <str name="storedField">name</str>
-    <bool name="partialMatches">true</bool>
+    <str name="field">name_tag</str>
     <str name="fq">NOT name:(of the)</str><!-- filter out -->
   </requestHandler>
 

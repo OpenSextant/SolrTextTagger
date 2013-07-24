@@ -82,12 +82,6 @@ public abstract class AbstractTaggerTest extends SolrTestCaseJ4 {
     }
   }
 
-  private void build(String... buildParams) {
-    ModifiableSolrParams params = newParams(buildParams);
-    params.add("build", "on");
-    assertQ(req(params));
-  }
-
   private SolrQueryRequest req(SolrParams params) {
     NamedList<Object> nl = params.toNamedList();
     String[] strs = new String[nl.size()*2];
@@ -125,7 +119,6 @@ public abstract class AbstractTaggerTest extends SolrTestCaseJ4 {
       assertU(adoc("id", ""+(i++), "name", n));
     }
     assertU(commit());
-    build();
   }
 
   protected String lookupByName(String name) {

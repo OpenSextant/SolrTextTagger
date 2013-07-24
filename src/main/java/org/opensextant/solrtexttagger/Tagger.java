@@ -26,20 +26,23 @@ import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
 import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
 import org.apache.lucene.analysis.tokenattributes.TermToBytesRefAttribute;
+import org.apache.lucene.index.DocsEnum;
+import org.apache.lucene.index.Terms;
+import org.apache.lucene.index.TermsEnum;
+import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
-import org.apache.lucene.util.IntsRef;
 
 import java.io.IOException;
 
 /**
  * Tags maximum string of words in a corpus.  This is a callback-style API
- * in which you implement {@link #tagCallback(int, int, long)}.
+ * in which you implement {@link #tagCallback(int, int, Object)}.
+ *
+ * This class should be independently usable outside Solr.
  *
  * @author David Smiley - dsmiley@mitre.org
  */
 public abstract class Tagger {
-
-  private final TaggerFstCorpus corpus;
 
   private final TokenStream tokenStream;
   //private final CharTermAttribute termAtt;
@@ -49,10 +52,13 @@ public abstract class Tagger {
   private final TaggingAttribute lookupAtt;
 
   private final TagClusterReducer tagClusterReducer;
+  private final Terms terms;
+  private final Bits liveDocs;
 
-  public Tagger(TaggerFstCorpus corpus, TokenStream tokenStream,
+  public Tagger(Terms terms, Bits liveDocs, TokenStream tokenStream,
                 TagClusterReducer tagClusterReducer) throws IOException {
-    this.corpus = corpus;
+    this.terms = terms;
+    this.liveDocs = liveDocs;
     this.tokenStream = tokenStream;
     //termAtt = tokenStream.addAttribute(CharTermAttribute.class);
     byteRefAtt = tokenStream.addAttribute(TermToBytesRefAttribute.class);
@@ -65,11 +71,14 @@ public abstract class Tagger {
   }
 
   public void process() throws IOException {
+    if (terms == null)
+      return;
 
     //a shared pointer to the head used by this method and each Tag instance.
     final TagLL[] head = new TagLL[1];
 
-    MyFstCursor<Long> cursor = null;
+    TermPrefixCursor cursor = null;//re-used
+    TermsEnum termsEnum = null;//re-used
 
     int lastStartOffset = -1;
 
@@ -86,33 +95,39 @@ public abstract class Tagger {
         throw new IllegalStateException("term: " + byteRefAtt.getBytesRef().utf8ToString()
             + " analyzed to a token with posinc < 1: "+posInc);
       } else if (posInc > 1) {
-        advanceTagsAndProcessClusterIfDone(head, -1);
+        advanceTagsAndProcessClusterIfDone(head, null);
       }
 
-      final int termId;
+      final BytesRef term;
       //NOTE: we need to lookup tokens if
       // * the LookupAtt is true OR
       // * there are still advancing tags (to find the longest possible match)
       if(lookupAtt.isTaggable() || head[0] != null){
         //-- Lookup the term id from the next token
-        termId = getTermIdFromByteRef();
-      } else { //no current cluster AND lookup == false ... 
-        termId = -1; //skip this token
+        byteRefAtt.fillBytesRef();
+        term = byteRefAtt.getBytesRef();
+        if (term.length == 0) {
+          throw new IllegalArgumentException("term: " + term.utf8ToString() + " analyzed to a zero-length token");
+        }
+      } else { //no current cluster AND lookup == false ...
+        term = null; //skip this token
       }
       
       //-- Process tag
-      advanceTagsAndProcessClusterIfDone(head, termId);
+      advanceTagsAndProcessClusterIfDone(head, term);
 
       //-- only create new Tags for Tokens we need to lookup
-      if (lookupAtt.isTaggable() && termId >= 0) {
+      if (lookupAtt.isTaggable() && term != null) {
 
-        //determine if the FST has the term as a start state
-        // TODO use a cached bitset of starting termIds, which is faster than a failed FST advance which is common
-        if (cursor == null)
-          cursor = new MyFstCursor<Long>(corpus.getPhrases());
-        if (cursor.nextByLabel(termId)) {
+        //determine if the the terms index has a term starting with the provided term
+        // TODO cache hashcodes of valid first terms (directly from char[]?) to skip lookups?
+        termsEnum = terms.iterator(termsEnum);
+        if (cursor == null)//re-usable
+          cursor = new TermPrefixCursor();
+        if (cursor.advanceFirst(term, termsEnum)) {
           TagLL newTail = new TagLL(head, cursor, offsetAtt.startOffset(), offsetAtt.endOffset(), null);
-          cursor = null;//because we can't share it with the next iteration
+          termsEnum = null;//because the cursor now "owns" this instance
+          cursor = null;//because the new tag now "owns" this instance
           //and add it to the end
           if (head[0] == null) {
             head[0] = newTail;
@@ -129,39 +144,30 @@ public abstract class Tagger {
     }//end while(incrementToken())
 
     //-- Finish all tags
-    advanceTagsAndProcessClusterIfDone(head, -1);
+    advanceTagsAndProcessClusterIfDone(head, null);
     assert head[0] == null;
 
     tokenStream.end();
     tokenStream.close();
   }
 
-  private void advanceTagsAndProcessClusterIfDone(TagLL[] head, int termId) throws IOException {
+  private void advanceTagsAndProcessClusterIfDone(TagLL[] head, BytesRef term) throws IOException {
     //-- Advance tags
-    final int endOffset = termId != -1 ? offsetAtt.endOffset() : -1;
+    final int endOffset = term != null ? offsetAtt.endOffset() : -1;
     boolean anyAdvance = false;
     for (TagLL t = head[0]; t != null; t = t.nextTag) {
-      anyAdvance |= t.advance(termId, endOffset);
+      anyAdvance |= t.advance(term, endOffset);
     }
 
     //-- Process cluster if done
     if (!anyAdvance && head[0] != null) {
       tagClusterReducer.reduce(head);
       for (TagLL t = head[0]; t != null; t = t.nextTag) {
+        assert t.value != null;
         tagCallback(t.startOffset, t.endOffset, t.value);
       }
       head[0] = null;
     }
-  }
-
-  private int getTermIdFromByteRef() {
-    byteRefAtt.fillBytesRef();
-    BytesRef bytesRef = byteRefAtt.getBytesRef();
-    int length = bytesRef.length;
-    if (length == 0) {
-      throw new IllegalArgumentException("term: " + bytesRef.utf8ToString() + " analyzed to a zero-length token");
-    }
-    return corpus.lookupTermId(bytesRef);//-1 if not found
   }
 
   /**
@@ -169,16 +175,95 @@ public abstract class Tagger {
    * call.
    * @param startOffset The character offset of the original stream where the tag starts.
    * @param endOffset One more than the character offset of the original stream where the tag ends.
-   * @param docIdsKey A reference to the matching docIds that can be resolved via {@link #lookupDocIds(long)}.
+   * @param docIdsKey A reference to the matching docIds that can be resolved via {@link #lookupDocIds(Object)}.
    */
-  protected abstract void tagCallback(int startOffset, int endOffset, long docIdsKey);
+  protected abstract void tagCallback(int startOffset, int endOffset, Object docIdsKey);
 
   /**
    * Returns a sorted array of integer docIds given the corresponding key.
    * @param docIdsKey The lookup key.
    * @return Not null
    */
-  protected IntsRef lookupDocIds(long docIdsKey) {
-    return corpus.getDocIdsByPhraseId(docIdsKey);
+  protected DocsEnum lookupDocIds(Object docIdsKey) {
+    return (DocsEnum) docIdsKey;
+  }
+
+  class TermPrefixCursor {
+
+    static final byte SEPARATOR_CHAR = ' ';
+    BytesRef prefixBuf;
+    TermsEnum termsEnum;
+    DocsEnum docsEnum;
+
+    boolean advanceFirst(BytesRef word, TermsEnum termsEnum) throws IOException {
+      this.termsEnum = termsEnum;
+      prefixBuf = word;//don't copy it unless we have to
+      if (seekPrefix()) {//... and we have to
+        prefixBuf = new BytesRef(64);
+        prefixBuf.copyBytes(word);
+        return true;
+      } else {
+        prefixBuf = null;//just to be darned sure 'word' isn't referenced here
+        return false;
+      }
+    }
+
+    boolean advanceNext(BytesRef word) throws IOException {
+      //append to existing
+      prefixBuf.grow(1 + word.length);
+      prefixBuf.bytes[prefixBuf.length++] = SEPARATOR_CHAR;
+      prefixBuf.append(word);
+      return seekPrefix();
+    }
+
+    /** Seeks to prefixBuf or the next prefix of it. Sets docsEnum. **/
+    private boolean seekPrefix() throws IOException {
+      TermsEnum.SeekStatus seekStatus = termsEnum.seekCeil(prefixBuf);
+
+      docsEnum = null;//can't re-use :-(
+      switch (seekStatus) {
+        case END:
+          return false;
+
+        case FOUND:
+          docsEnum = termsEnum.docs(liveDocs, docsEnum, DocsEnum.FLAG_NONE);
+          if (liveDocs == null)//then docsEnum is guaranteed to match docs
+            return true;
+
+          //need to verify there are indeed docs, which might not be so when there is a filter
+          if (docsEnum.nextDoc() != DocsEnum.NO_MORE_DOCS) {
+            docsEnum = termsEnum.docs(liveDocs, docsEnum, DocsEnum.FLAG_NONE);//reset
+            return true;
+          }
+          //Pretend we didn't find it; go to next term
+          docsEnum = null;
+          if (termsEnum.next() == null) { // case END
+            return false;
+          }
+          //fall through to NOT_FOUND
+
+        case NOT_FOUND:
+          //termsEnum must start with prefixBuf to continue
+          BytesRef teTerm = termsEnum.term();
+
+          if (teTerm.length > prefixBuf.length) {
+            for (int i = 0; i < prefixBuf.length; i++) {
+              if (prefixBuf.bytes[prefixBuf.offset + i] != teTerm.bytes[teTerm.offset + i])
+                return false;
+            }
+            if (teTerm.bytes[teTerm.offset + prefixBuf.length] != SEPARATOR_CHAR)
+              return false;
+            return true;
+          }
+          return false;
+      }
+      throw new IllegalStateException(seekStatus.toString());
+    }
+
+    /** should only be called after advance* returns true */
+    DocsEnum getDocsEnum() {
+      return docsEnum;
+    }
   }
 }
+

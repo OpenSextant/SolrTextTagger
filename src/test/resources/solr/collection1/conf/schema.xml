@@ -28,10 +28,11 @@
     <!-- freq, positions, and norms are not needed by the tagger. However if you
     intend to have this field be used for general search, you should not exclude
     these stats. -->
-    <field name="name_tagIdx" type="tag" stored="false"
-           omitTermFreqAndPositions="true" omitNorms="true"/>
+    <field name="name_tagger" type="tag" stored="false"/>
+    <field name="name_partialTagger" type="tagPartial" stored="false"/>
 
-    <copyField source="name" dest="name_tagIdx"/>
+    <copyField source="name" dest="name_tagger"/>
+    <copyField source="name" dest="name_partialTagger"/>
 
     <dynamicField name="*" type="string" indexed="true" stored="true"/>
   </fields>
@@ -44,12 +45,40 @@
     <fieldType name="long" class="solr.TrieLongField" precisionStep="0" positionIncrementGap="0"/>
     <fieldType name="int" class="solr.TrieIntField" precisionStep="0" positionIncrementGap="0"/>
 
-    <fieldType name="tag" class="solr.TextField" positionIncrementGap="100">
-      <analyzer>
+    <fieldType name="tag" class="solr.TextField" positionIncrementGap="100"
+               postingsFormat="Memory" omitTermFreqAndPositions="true" omitNorms="true">
+      <analyzer type="index">
+        <tokenizer class="solr.StandardTokenizerFactory" />
+        <filter class="solr.ASCIIFoldingFilterFactory"/>
+        <filter class="solr.LowerCaseFilterFactory"/>
+
+        <filter class="org.opensextant.solrtexttagger.ConcatenateFilterFactory" />
+      </analyzer>
+      <analyzer type="query">
+        <!-- 32 just for tests, bumps posInc -->
+        <tokenizer class="solr.StandardTokenizerFactory"
+                   maxTokenLength="32"/>
+        <filter class="solr.ASCIIFoldingFilterFactory"/>
+        <filter class="solr.LowerCaseFilterFactory"/>
+      </analyzer>
+    </fieldType>
+
+    <fieldType name="tagPartial" class="solr.TextField" positionIncrementGap="100"
+               postingsFormat="Memory" omitTermFreqAndPositions="true" omitNorms="true">
+      <analyzer type="index">
         <tokenizer class="solr.StandardTokenizerFactory"
                    maxTokenLength="32"/>
         <!-- 32 just for tests, bumps posInc -->
-        <!-- TODO consider WordDelimiterFilter -->
+        <filter class="solr.ASCIIFoldingFilterFactory"/>
+        <filter class="solr.LowerCaseFilterFactory"/>
+
+        <filter class="solr.ShingleFilterFactory"
+                outputUnigramsIfNoShingles="true" maxShingleSize="10"  />
+      </analyzer>
+      <analyzer type="query">
+        <!-- 32 just for tests, bumps posInc -->
+        <tokenizer class="solr.StandardTokenizerFactory"
+                   maxTokenLength="32"/>
         <filter class="solr.ASCIIFoldingFilterFactory"/>
         <filter class="solr.LowerCaseFilterFactory"/>
       </analyzer>

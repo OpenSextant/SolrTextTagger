@@ -28,10 +28,10 @@
     <!-- freq, positions, and norms are not needed by the tagger. However if you
     intend to have this field be used for general search, you should not exclude
     these stats. -->
-    <field name="name_tagIdx" type="tag" stored="false"
+    <field name="name_tag" type="tag" stored="false"
            omitTermFreqAndPositions="true" omitNorms="true"/>
 
-    <copyField source="name" dest="name_tagIdx"/>
+    <copyField source="name" dest="name_tag"/>
 
     <dynamicField name="*" type="string" indexed="true" stored="true"/>
   </fields>
@@ -44,18 +44,25 @@
     <fieldType name="long" class="solr.TrieLongField" precisionStep="0" positionIncrementGap="0"/>
     <fieldType name="int" class="solr.TrieIntField" precisionStep="0" positionIncrementGap="0"/>
 
-    <fieldType name="tag" class="solr.TextField" positionIncrementGap="100">
-      <analyzer>
+    <fieldType name="tag" class="solr.TextField" positionIncrementGap="100" postingsFormat="Memory">
+      <analyzer type="index">
+        <tokenizer class="solr.StandardTokenizerFactory" />
+        <filter class="solr.ASCIIFoldingFilterFactory"/>
+        <filter class="solr.LowerCaseFilterFactory"/>
+
+        <filter class="org.opensextant.solrtexttagger.ConcatenateFilterFactory" />
+      </analyzer>
+      <analyzer type="query">
+        <!-- 32 just for tests, bumps posInc -->
         <tokenizer class="solr.StandardTokenizerFactory"
                    maxTokenLength="32"/>
-        <!-- 32 just for tests, bumps posInc -->
         <!--
-          NOTE: This used the WordLengthTaggingFilterFactory to test the
-          TaggingAttribute. The WordLengthTaggingFilter set the TaggingAttribute
-          for words based on their length. The attribute is ignored at indexing
-          time, but the Tagger will use it to only start tags for words that are
-          equals or longer as the configured minLength.
-          -->
+         NOTE: This used the WordLengthTaggingFilterFactory to test the
+         TaggingAttribute. The WordLengthTaggingFilter set the TaggingAttribute
+         for words based on their length. The attribute is ignored at indexing
+         time, but the Tagger will use it to only start tags for words that are
+         equals or longer as the configured minLength.
+         -->
         <filter class="solr.WordLengthTaggingFilterFactory" minLength="4"/>
         <filter class="solr.ASCIIFoldingFilterFactory"/>
         <filter class="solr.LowerCaseFilterFactory"/>

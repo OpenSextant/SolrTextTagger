@@ -29,19 +29,18 @@
   <dataDir>${solr.data.dir:}</dataDir>
   <directoryFactory name="DirectoryFactory" class="${solr.directoryFactory:solr.RAMDirectoryFactory}"/>
 
+  <!-- for postingsFormat="Memory" -->
+  <codecFactory name="CodecFactory" class="solr.SchemaCodecFactory" />
+
   <requestHandler name="/select" class="solr.SearchHandler"></requestHandler>
 
   <requestHandler name="/tag" class="org.opensextant.solrtexttagger.TaggerRequestHandler">
-    <str name="indexedField">name_tagIdx</str>
-    <str name="storedField">name</str>
-    <bool name="partialMatches">false</bool>
+    <str name="field">name_tagger</str>
     <str name="fq">NOT name:(of the)</str><!-- filter out -->
   </requestHandler>
 
   <requestHandler name="/tagPartial" class="org.opensextant.solrtexttagger.TaggerRequestHandler">
-    <str name="indexedField">name_tagIdx</str>
-    <str name="storedField">name</str>
-    <bool name="partialMatches">true</bool>
+    <str name="field">name_partialTagger</str>
     <str name="fq">NOT name:(of the)</str><!-- filter out -->
   </requestHandler>
 
