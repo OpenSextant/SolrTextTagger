@@ -43,13 +43,17 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public class EmbeddedSolrUpdater {
 
+  private EmbeddedSolrUpdater() {}
+
   //It would be nice to somehow extend Solr's SimplePostTool (post.jar) but
   // that is much work than what this simple java program does.
   public static void main(String[] args) throws Exception {
     if (args.length == 0) {
       System.err.println("First arg: --input=<csv>   Names CSV file. 'stdin' for System.stdin\n\n");
-      System.err.println("This program takes a series of Solr url paths as arguments.   the first should start with '/update' but is more likely:");
-      System.err.println("  /update?update.contentType=text/csv&optimize=true&separator=%09&trim=on&f.SOURCE_FEATURE_ID.map=1.0:1");
+      System.err.println("This program takes a series of Solr url paths as arguments." +
+          "   the first should start with '/update' but is more likely:");
+      System.err.println("  /update?" +
+          "update.contentType=text/csv&optimize=true&separator=%09&trim=on&f.SOURCE_FEATURE_ID.map=1.0:1");
       System.err.println("Other URLs.  And remember to set Solr home via -Dsolr.sorl.home=...");
       return;
     }
@@ -147,7 +151,7 @@ public class EmbeddedSolrUpdater {
           throws UnsupportedEncodingException {
     ModifiableSolrParams solrParams = new ModifiableSolrParams();
     for (String param : query.split("&")) {
-      String pair[] = param.split("=");
+      String[] pair = param.split("=");
       String key = URLDecoder.decode(pair[0], "UTF-8");
       String value = "";
       if (pair.length > 1) {

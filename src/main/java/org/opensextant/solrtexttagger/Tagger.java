@@ -112,7 +112,7 @@ public abstract class Tagger {
       } else { //no current cluster AND lookup == false ...
         term = null; //skip this token
       }
-      
+
       //-- Process tag
       advanceTagsAndProcessClusterIfDone(head, term);
 
