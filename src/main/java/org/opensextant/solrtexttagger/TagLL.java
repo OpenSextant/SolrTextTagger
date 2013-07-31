@@ -45,7 +45,7 @@ class TagLL {
   private final TagLL[] head;//a shared pointer to the head; 1 element
   TagLL prevTag, nextTag; // linked list
 
-  private Tagger.TermPrefixCursor cursor;
+  private TermPrefixCursor cursor;
 
   final int startOffset;//inclusive
   int endOffset;//exclusive
@@ -54,7 +54,7 @@ class TagLL {
   /** optional boolean used by some TagClusterReducer's */
   boolean mark = false;
 
-  TagLL(TagLL[] head, Tagger.TermPrefixCursor cursor, int startOffset, int endOffset, Object value) {
+  TagLL(TagLL[] head, TermPrefixCursor cursor, int startOffset, int endOffset, Object value) {
     this.head = head;
     this.cursor = cursor;
     this.startOffset = startOffset;
