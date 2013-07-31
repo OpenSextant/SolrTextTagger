@@ -27,7 +27,8 @@
 
 <!--
 
-  Checkstyle configuration that checks the sun coding conventions from:
+  Checkstyle configuration that checks for some fairly minimal conventions. Some
+    coding convention sources this is partially borrowed from are:
 
     - the Java Language Specification at
       http://java.sun.com/docs/books/jls/second_edition/html/index.html
@@ -53,22 +54,36 @@
 -->
 
 <module name="Checker">
+  <property name="severity" value="warning"/>
 
   <!--
       If you set the basedir property below, then all reported file
       names will be relative to the specified directory. See
       http://checkstyle.sourceforge.net/5.x/config.html#Checker
-
-      <property name="basedir" value="${basedir}"/>
   -->
+  <!--<property name="basedir" value="${basedir}"/>-->
+
+  <module name="SuppressionFilter">
+    <property name="file" value="${checkstyle.suppressions.file}" default="checkstyle-suppressions.xml"/>
+  </module>
+
+  <!-- http://checkstyle.sourceforge.net/config_duplicates.html -->
+  <module name="StrictDuplicateCode">
+    <property name="min" value="15"/>
+  </module>
+  <!-- http://www.harukizaemon.com/simian/installation.html#checkstyle -->
+  <!--<module name="au.com.redhillconsulting.simian.SimianCheck">-->
+    <!--<property name="threshold" value="6"/>-->
+  <!--</module>-->
+
 
   <!-- Checks that a package-info.java file exists for each package.     -->
   <!-- See http://checkstyle.sf.net/config_javadoc.html#JavadocPackage -->
-  <module name="JavadocPackage"/>
+  <!--<module name="JavadocPackage"/>-->
 
   <!-- Checks whether files end with a new line.                        -->
   <!-- See http://checkstyle.sf.net/config_misc.html#NewlineAtEndOfFile -->
-  <module name="NewlineAtEndOfFile"/>
+  <!--<module name="NewlineAtEndOfFile"/>-->
 
   <!-- Checks that property files contain the same keys.         -->
   <!-- See http://checkstyle.sf.net/config_misc.html#Translation -->
@@ -80,7 +95,9 @@
 
   <!-- Checks for whitespace                               -->
   <!-- See http://checkstyle.sf.net/config_whitespace.html -->
-  <module name="FileTabCharacter"/>
+  <module name="FileTabCharacter">
+    <property name="severity" value="error"/>
+  </module>
 
   <!-- Miscellaneous other checks.                   -->
   <!-- See http://checkstyle.sf.net/config_misc.html -->
@@ -99,102 +116,142 @@
   <!-- </module> -->
 
   <module name="TreeWalker">
+    <property name="tabWidth" value="${checkstyle.indentChars}" default="2"/>
+
+    <module name="Indentation">
+      <property name="severity" value="warning"/>
+      <property name="basicOffset" value="${checkstyle.indentChars}" default="2"/>
+      <property name="caseIndent" value="${checkstyle.indentChars}" default="2"/>
+      <!-- https://sourceforge.net/p/checkstyle/patches/226/
+          and https://github.com/maikelsteneker/checkstyle-throwsIndent -->
+      <!--<property name="throwsIndent" value="${checkstyle.indentCharsThrows}" default="4"/>-->
+    </module>
+
+    <!-- http://checkstyle.sourceforge.net/config_annotation.html -->
+    <module name="MissingOverride"/>
+
+    <!-- http://checkstyle.sourceforge.net/config_coding.html -->
+    <module name="CovariantEquals"/>
+    <module name="EqualsHashCode"/>
 
     <!-- Checks for Javadoc comments.                     -->
     <!-- See http://checkstyle.sf.net/config_javadoc.html -->
-    <module name="JavadocMethod"/>
-    <module name="JavadocType"/>
-    <module name="JavadocVariable"/>
-    <module name="JavadocStyle"/>
-
+    <!--<module name="JavadocMethod"/>-->
+    <!--<module name="JavadocType"/>-->
+    <!--<module name="JavadocVariable"/>-->
+    <!--<module name="JavadocStyle"/>-->
 
     <!-- Checks for Naming Conventions.                  -->
     <!-- See http://checkstyle.sf.net/config_naming.html -->
-    <module name="ConstantName"/>
-    <module name="LocalFinalVariableName"/>
-    <module name="LocalVariableName"/>
-    <module name="MemberName"/>
-    <module name="MethodName"/>
-    <module name="PackageName"/>
-    <module name="ParameterName"/>
-    <module name="StaticVariableName"/>
-    <module name="TypeName"/>
+    <module name="ClassTypeParameterName">
+      <property name="severity" value="error"/>
+    </module>
+    <!-- As per Sun convention except also allowing "logger"  or "log"
+         since some people don't like references to "LOGGER" shouting out all
+         over their code -->
+    <module name="ConstantName">
+      <property name="severity" value="error"/>
+      <property name="format" value="^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$|^log(ger)?$"/>
+    </module>
+    <module name="LocalFinalVariableName">
+    </module>
+    <module name="LocalVariableName">
+    </module>
+    <module name="MemberName">
+      <property name="severity" value="error"/>
+    </module>
+    <module name="MethodName">
+      <property name="severity" value="error"/>
+    </module>
+    <module name="MethodTypeParameterName">
+      <property name="severity" value="error"/>
+    </module>
+    <module name="PackageName">
+      <property name="severity" value="error"/>
+    </module>
+    <module name="ParameterName">
+      <property name="severity" value="error"/>
+    </module>
+    <module name="StaticVariableName">
+      <property name="severity" value="error"/>
+    </module>
+    <module name="TypeName">
+      <property name="severity" value="error"/>
+    </module>
 
 
     <!-- Checks for imports                              -->
     <!-- See http://checkstyle.sf.net/config_import.html -->
-    <module name="AvoidStarImport"/>
+    <!--<module name="AvoidStarImport"/>-->
     <module name="IllegalImport"/> <!-- defaults to sun.* packages -->
     <module name="RedundantImport"/>
-    <module name="UnusedImports"/>
-
+    <module name="UnusedImports">
+      <property name="processJavadoc" value="true" />
+    </module>
 
     <!-- Checks for Size Violations.                    -->
     <!-- See http://checkstyle.sf.net/config_sizes.html -->
-    <module name="LineLength"/>
+    <module name="LineLength">
+      <property name="max" value="120"/>
+      <property name="ignorePattern" value="^import " />
+    </module>
     <module name="MethodLength"/>
     <module name="ParameterNumber"/>
 
 
     <!-- Checks for whitespace                               -->
     <!-- See http://checkstyle.sf.net/config_whitespace.html -->
-    <module name="EmptyForIteratorPad"/>
-    <module name="GenericWhitespace"/>
-    <module name="MethodParamPad"/>
-    <module name="NoWhitespaceAfter"/>
-    <module name="NoWhitespaceBefore"/>
-    <module name="OperatorWrap"/>
-    <module name="ParenPad"/>
-    <module name="TypecastParenPad"/>
-    <module name="WhitespaceAfter"/>
-    <module name="WhitespaceAround"/>
+    <!--<module name="EmptyForIteratorPad"/>-->
+    <!--<module name="GenericWhitespace"/>-->
+    <!--<module name="MethodParamPad"/>-->
+    <!--<module name="NoWhitespaceAfter"/>-->
+    <!--<module name="NoWhitespaceBefore"/>-->
+    <!--<module name="OperatorWrap"/>-->
+    <!--<module name="ParenPad"/>-->
+    <!--<module name="TypecastParenPad"/>-->
+    <!--<module name="WhitespaceAfter"/>--><!-- TODO customize -->
+    <!--<module name="WhitespaceAround"/>-->
 
 
     <!-- Modifier Checks                                    -->
     <!-- See http://checkstyle.sf.net/config_modifiers.html -->
     <module name="ModifierOrder"/>
-    <module name="RedundantModifier"/>
+    <!--<module name="RedundantModifier"/>-->
 
 
     <!-- Checks for blocks. You know, those {}'s         -->
     <!-- See http://checkstyle.sf.net/config_blocks.html -->
-    <module name="AvoidNestedBlocks"/>
-    <module name="EmptyBlock"/>
+    <!--<module name="AvoidNestedBlocks"/>-->
+    <module name="EmptyBlock">
+      <property name="severity" value="error" />
+      <property name="option" value="text" /><!-- at least include a comment -->
+    </module>
     <module name="LeftCurly"/>
-    <module name="NeedBraces"/>
+    <!--<module name="NeedBraces"/>-->
     <module name="RightCurly"/>
-
-
-    <!-- Checks for common coding problems               -->
-    <!-- See http://checkstyle.sf.net/config_coding.html -->
-    <module name="AvoidInlineConditionals"/>
-    <module name="DoubleCheckedLocking"/>    <!-- MY FAVOURITE -->
-    <module name="EmptyStatement"/>
-    <module name="EqualsHashCode"/>
-    <module name="HiddenField"/>
-    <module name="IllegalInstantiation"/>
-    <module name="InnerAssignment"/>
-    <module name="MagicNumber"/>
-    <module name="MissingSwitchDefault"/>
-    <module name="RedundantThrows"/>
-    <module name="SimplifyBooleanExpression"/>
-    <module name="SimplifyBooleanReturn"/>
 
     <!-- Checks for class design                         -->
     <!-- See http://checkstyle.sf.net/config_design.html -->
-    <module name="DesignForExtension"/>
-    <module name="FinalClass"/>
+    <!--<module name="DesignForExtension"/>-->
+    <!--<module name="FinalClass"/>-->
     <module name="HideUtilityClassConstructor"/>
-    <module name="InterfaceIsType"/>
-    <module name="VisibilityModifier"/>
+    <!--<module name="InterfaceIsType"/>-->
+    <!--<module name="VisibilityModifier"/>-->
 
 
     <!-- Miscellaneous other checks.                   -->
     <!-- See http://checkstyle.sf.net/config_misc.html -->
-    <module name="ArrayTypeStyle"/>
-    <module name="FinalParameters"/>
-    <module name="TodoComment"/>
-    <module name="UpperEll"/>
+    <module name="ArrayTypeStyle">
+      <property name="severity" value="error" />
+    </module>
+    <!--<module name="FinalParameters"/>-->
+    <!--<module name="TodoComment"/>-->
+    <module name="UpperEll">
+      <property name="severity" value="error" />
+    </module>
+    <module name="OuterTypeFilename">
+      <property name="severity" value="error" />
+    </module>
 
   </module>
 
