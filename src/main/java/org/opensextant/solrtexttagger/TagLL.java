@@ -84,7 +84,7 @@ class TagLL {
 
     Object iVal = cursor.getDocsEnum();
 
-    if (word != null && cursor.advanceNext(word)) {
+    if (word != null && cursor.advance(word)) {
 
       if (iVal != null) {
         addBeforeLL(new TagLL(head, null, startOffset, endOffset, iVal));

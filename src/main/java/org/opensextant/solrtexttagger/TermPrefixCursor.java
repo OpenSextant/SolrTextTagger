@@ -30,40 +30,46 @@ import org.apache.lucene.util.BytesRef;
 import java.io.IOException;
 
 /**
-* @author David Smiley - dsmiley@mitre.org
-*/
+ * Cursor into the terms that advances by prefix.
+ *
+ * @author David Smiley - dsmiley@mitre.org
+ */
 class TermPrefixCursor {
 
   static final byte SEPARATOR_CHAR = ' ';
 
-  private Bits liveDocs;
+  private final TermsEnum termsEnum;
+  private final Bits liveDocs;
   BytesRef prefixBuf;
-  TermsEnum termsEnum;
   DocsEnum docsEnum;
 
-  TermPrefixCursor(Bits liveDocs) {
+  TermPrefixCursor(TermsEnum termsEnum, Bits liveDocs) {
+    this.termsEnum = termsEnum;
     this.liveDocs = liveDocs;
   }
 
-  boolean advanceFirst(BytesRef word, TermsEnum termsEnum) throws IOException {
-    this.termsEnum = termsEnum;
-    prefixBuf = word;//don't copy it unless we have to
-    if (seekPrefix()) {//... and we have to
-      prefixBuf = new BytesRef(64);
-      prefixBuf.copyBytes(word);
-      return true;
-    } else {
-      prefixBuf = null;//just to be darned sure 'word' isn't referenced here
-      return false;
-    }
-  }
+  /** Appends the separator char (if not the first) plus the given word to the prefix buffer,
+   * then seeks to it. If false is returned, then the advance failed, after which this
+   * cursor should be considered void.  The {{word}} BytesRef is considered temporary. */
+  boolean advance(BytesRef word) throws IOException {
+    if (prefixBuf == null) { // first advance
+      prefixBuf = word;//temporary; don't copy it unless we have to
+      if (seekPrefix()) {//... and we have to
+        prefixBuf = new BytesRef(64);
+        prefixBuf.copyBytes(word);
+        return true;
+      } else {
+        prefixBuf = null;//just to be darned sure 'word' isn't referenced here
+        return false;
+      }
 
-  boolean advanceNext(BytesRef word) throws IOException {
-    //append to existing
-    prefixBuf.grow(1 + word.length);
-    prefixBuf.bytes[prefixBuf.length++] = SEPARATOR_CHAR;
-    prefixBuf.append(word);
-    return seekPrefix();
+    } else { // subsequent advance
+      //append to existing
+      prefixBuf.grow(1 + word.length);
+      prefixBuf.bytes[prefixBuf.length++] = SEPARATOR_CHAR;
+      prefixBuf.append(word);
+      return seekPrefix();
+    }
   }
 
   /** Seeks to prefixBuf or the next prefix of it. Sets docsEnum. **/

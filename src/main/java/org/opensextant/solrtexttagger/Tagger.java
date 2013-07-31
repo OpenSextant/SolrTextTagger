@@ -123,8 +123,8 @@ public abstract class Tagger {
         // TODO cache hashcodes of valid first terms (directly from char[]?) to skip lookups?
         termsEnum = terms.iterator(termsEnum);
         if (cursor == null)//re-usable
-          cursor = new TermPrefixCursor(liveDocs);
-        if (cursor.advanceFirst(term, termsEnum)) {
+          cursor = new TermPrefixCursor(termsEnum, liveDocs);
+        if (cursor.advance(term)) {
           TagLL newTail = new TagLL(head, cursor, offsetAtt.startOffset(), offsetAtt.endOffset(), null);
           termsEnum = null;//because the cursor now "owns" this instance
           cursor = null;//because the new tag now "owns" this instance
