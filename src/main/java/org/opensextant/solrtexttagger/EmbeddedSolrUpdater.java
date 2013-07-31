@@ -147,8 +147,7 @@ public class EmbeddedSolrUpdater {
     return new EmbeddedSolrServer(coreContainer, ""/*core name*/);
   }
 
-  public static ModifiableSolrParams getUrlParameters(String query)
-          throws UnsupportedEncodingException {
+  public static ModifiableSolrParams getUrlParameters(String query) throws UnsupportedEncodingException {
     ModifiableSolrParams solrParams = new ModifiableSolrParams();
     for (String param : query.split("&")) {
       String[] pair = param.split("=");

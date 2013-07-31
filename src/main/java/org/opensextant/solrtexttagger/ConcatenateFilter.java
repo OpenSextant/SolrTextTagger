@@ -88,7 +88,7 @@ public class ConcatenateFilter extends TokenFilter {
       if (firstTerm)
         posInc--;
       for (int i = 0; i < posInc; i++) {
-         buf.append(separator);
+        buf.append(separator);
       }
       buf.append(termAtt);
       firstTerm = false;
