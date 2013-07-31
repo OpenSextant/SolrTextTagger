@@ -20,7 +20,9 @@
   limitations under the License.
   -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
@@ -144,8 +146,94 @@
         <!--</configuration>-->
       <!--</plugin>-->
 
+      <!-- Code Quality (usually run from C.I.) -->
+
+      <!-- run explicitly with: mvn checkstyle:check -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-checkstyle-plugin</artifactId>
+        <version>2.10</version>
+        <configuration>
+          <configLocation>checkstyle.xml</configLocation>
+          <consoleOutput>true</consoleOutput>
+          <failsOnError>true</failsOnError>
+        </configuration>
+        <executions>
+          <execution>
+            <phase>compile</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- run explicitly with: mvn pmd:check -->
+      <!-- PMD is partially redundant with FindBugs -->
+      <!--<plugin>-->
+        <!--<groupId>org.apache.maven.plugins</groupId>-->
+        <!--<artifactId>maven-pmd-plugin</artifactId>-->
+        <!--<version>3.0.1</version>-->
+        <!--<configuration>-->
+          <!--<minimumTokens>100</minimumTokens>-->
+          <!--<targetJdk>1.6</targetJdk>-->
+          <!--<rulesets>-->
+            <!--<ruleset>/rulesets/java/basic.xml</ruleset>-->
+            <!--<ruleset>/rulesets/java/design.xml</ruleset>-->
+          <!--</rulesets>-->
+        <!--</configuration>-->
+      <!--</plugin>-->
+
+      <!-- run explicitly with: mvn findbugs:check
+        It might fail the build but don't take it seriously. -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>findbugs-maven-plugin</artifactId>
+        <version>2.5.2</version>
+        <configuration>
+          <xmlOutput>true</xmlOutput>
+          <!--<threshold>High</threshold>-->
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-site-plugin</artifactId>
+        <version>3.1</version>
+      </plugin>
+
     </plugins>
 
   </build>
+
+  <reporting>
+    <plugins>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-project-info-reports-plugin</artifactId>
+        <version>2.7</version>
+        <configuration>
+          <!-- slow: -->
+          <dependencyLocationsEnabled>false</dependencyLocationsEnabled>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <version>2.9.1</version>
+        <reportSets>
+          <reportSet>
+            <reports>
+              <report>javadoc</report>
+              <!--<report>test-javadoc</report>-->
+            </reports>
+          </reportSet>
+        </reportSets>
+      </plugin>
+
+    </plugins>
+  </reporting>
 
 </project>
