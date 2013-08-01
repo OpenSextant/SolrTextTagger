@@ -26,17 +26,19 @@ import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
 import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
 import org.apache.lucene.analysis.tokenattributes.TermToBytesRefAttribute;
-import org.apache.lucene.index.DocsEnum;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.IntsRef;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Tags maximum string of words in a corpus.  This is a callback-style API
- * in which you implement {@link #tagCallback(int, int, Object)}.
+ * in which you implement {@link #tagCallback(int, int, org.apache.lucene.util.IntsRef)}.
  *
  * This class should be independently usable outside Solr.
  *
@@ -55,6 +57,8 @@ public abstract class Tagger {
   private final Terms terms;
   private final Bits liveDocs;
 
+  private Map<BytesRef, IntsRef> docIdsCache;
+
   public Tagger(Terms terms, Bits liveDocs, TokenStream tokenStream,
                 TagClusterReducer tagClusterReducer) throws IOException {
     this.terms = terms;
@@ -68,6 +72,11 @@ public abstract class Tagger {
     tokenStream.reset();
 
     this.tagClusterReducer = tagClusterReducer;
+  }
+
+  public void enableDocIdsCache(int initSize) {
+    if (initSize > 0)
+      docIdsCache = new HashMap<BytesRef, IntsRef>(initSize);
   }
 
   public void process() throws IOException {
@@ -119,11 +128,11 @@ public abstract class Tagger {
       //-- only create new Tags for Tokens we need to lookup
       if (lookupAtt.isTaggable() && term != null) {
 
-        //determine if the the terms index has a term starting with the provided term
+        //determine if the terms index has a term starting with the provided term
         // TODO cache hashcodes of valid first terms (directly from char[]?) to skip lookups?
         termsEnum = terms.iterator(termsEnum);
         if (cursor == null)//re-usable
-          cursor = new TermPrefixCursor(termsEnum, liveDocs);
+          cursor = new TermPrefixCursor(termsEnum, liveDocs, docIdsCache);
         if (cursor.advance(term)) {
           TagLL newTail = new TagLL(head, cursor, offsetAtt.startOffset(), offsetAtt.endOffset(), null);
           termsEnum = null;//because the cursor now "owns" this instance
@@ -184,9 +193,8 @@ public abstract class Tagger {
    * @param docIdsKey The lookup key.
    * @return Not null
    */
-  protected DocsEnum lookupDocIds(Object docIdsKey) {
-    return (DocsEnum) docIdsKey;
+  protected IntsRef lookupDocIds(Object docIdsKey) {
+    return (IntsRef) docIdsKey;
   }
-
 }
 

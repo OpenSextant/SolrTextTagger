@@ -26,7 +26,6 @@ import com.google.common.io.CharStreams;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.index.AtomicReaderContext;
-import org.apache.lucene.index.DocsEnum;
 import org.apache.lucene.index.ReaderUtil;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.queries.function.FunctionValues;
@@ -35,6 +34,7 @@ import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.util.Bits;
+import org.apache.lucene.util.IntsRef;
 import org.apache.lucene.util.OpenBitSet;
 import org.apache.solr.common.SolrException;
 import org.apache.solr.common.params.CommonParams;
@@ -156,7 +156,7 @@ public class TaggerRequestHandler extends RequestHandlerBase {
       if (terms == null)
         throw new SolrException(SolrException.ErrorCode.BAD_REQUEST,
             "field "+indexedField+" has no indexed data");
-      new Tagger(terms, docBits, tokenStream, tagClusterReducer) {
+      Tagger tagger = new Tagger(terms, docBits, tokenStream, tagClusterReducer) {
         @SuppressWarnings("unchecked")
         @Override
         protected void tagCallback(int startOffset, int endOffset, Object docIdsKey) {
@@ -166,8 +166,7 @@ public class TaggerRequestHandler extends RequestHandlerBase {
           tag.add("startOffset", startOffset);
           tag.add("endOffset", endOffset);
           if (addMatchText)
-            tag.add("matchText", bufferedInput.substring(startOffset,
-                endOffset));
+            tag.add("matchText", bufferedInput.substring(startOffset, endOffset));
           //below caches, and also flags matchDocIdsBS
           tag.add("ids", lookupSchemaDocIds(docIdsKey));
           tags.add(tag);
@@ -183,25 +182,23 @@ public class TaggerRequestHandler extends RequestHandlerBase {
           List schemaDocIds = docIdsListCache.get(docIdsKey);
           if (schemaDocIds != null)
             return schemaDocIds;
-          DocsEnum docIds = lookupDocIds(docIdsKey);
+          IntsRef docIds = lookupDocIds(docIdsKey);
           //translate lucene docIds to schema ids
-          schemaDocIds = new ArrayList();
-          try {
-            int docId;
-            while ((docId = docIds.nextDoc()) != DocsEnum.NO_MORE_DOCS) {
-              matchDocIdsBS.set(docId);//also, flip docid in bitset
-              schemaDocIds.add(uniqueKeyCache.objectVal(docId));//translates here
-            }
-            assert !schemaDocIds.isEmpty();
-          } catch (IOException e) {
-            throw new RuntimeException(e);
+          schemaDocIds = new ArrayList(docIds.length);
+          for (int i = docIds.offset; i < docIds.offset + docIds.length; i++) {
+            int docId = docIds.ints[i];
+            matchDocIdsBS.set(docId);//also, flip docid in bitset
+            schemaDocIds.add(uniqueKeyCache.objectVal(docId));//translates here
           }
+          assert !schemaDocIds.isEmpty();
 
-          docIdsListCache.put(docIdsKey, schemaDocIds);
+          docIdsListCache.put(docIds, schemaDocIds);
           return schemaDocIds;
         }
 
-      }.process();
+      };
+      tagger.enableDocIdsCache(2000);//TODO configurable
+      tagger.process();
     } finally {
       reader.close();
     }

@@ -82,7 +82,7 @@ class TagLL {
     if (!isAdvancing())
       return false;
 
-    Object iVal = cursor.getDocsEnum();
+    Object iVal = cursor.getDocIds();
 
     if (word != null && cursor.advance(word)) {
 

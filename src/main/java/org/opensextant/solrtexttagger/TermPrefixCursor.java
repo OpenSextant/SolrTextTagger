@@ -26,8 +26,10 @@ import org.apache.lucene.index.DocsEnum;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.IntsRef;
 
 import java.io.IOException;
+import java.util.Map;
 
 /**
  * Cursor into the terms that advances by prefix.
@@ -36,27 +38,36 @@ import java.io.IOException;
  */
 class TermPrefixCursor {
 
-  static final byte SEPARATOR_CHAR = ' ';
+  //Note: this could be a lot more efficient if MemoryPostingsFormat supported ordinal lookup.
+  // Maybe that could be added to Lucene.
+
+  private static final byte SEPARATOR_CHAR = ' ';
+  private static final IntsRef EMPTY_INTSREF = new IntsRef();
 
   private final TermsEnum termsEnum;
   private final Bits liveDocs;
-  BytesRef prefixBuf;
-  DocsEnum docsEnum;
+  private final Map<BytesRef, IntsRef> docIdsCache;
 
-  TermPrefixCursor(TermsEnum termsEnum, Bits liveDocs) {
+  private BytesRef prefixBuf;//we append to this
+  private boolean bufNeedsToBeCopied;
+  private DocsEnum docsEnum;
+  private IntsRef docIds;
+
+  TermPrefixCursor(TermsEnum termsEnum, Bits liveDocs, Map<BytesRef, IntsRef> docIdsCache) {
     this.termsEnum = termsEnum;
     this.liveDocs = liveDocs;
+    this.docIdsCache = docIdsCache;
   }
 
   /** Appends the separator char (if not the first) plus the given word to the prefix buffer,
-   * then seeks to it. If false is returned, then the advance failed, after which this
-   * cursor should be considered void.  The {{word}} BytesRef is considered temporary. */
+   * then seeks to it. If the seek fails, false is returned and this cursor
+   * can be re-used as if in a new state.  The {{word}} BytesRef is considered temporary. */
   boolean advance(BytesRef word) throws IOException {
     if (prefixBuf == null) { // first advance
       prefixBuf = word;//temporary; don't copy it unless we have to
+      bufNeedsToBeCopied = true;
       if (seekPrefix()) {//... and we have to
-        prefixBuf = new BytesRef(64);
-        prefixBuf.copyBytes(word);
+        ensureBufIsACopy();
         return true;
       } else {
         prefixBuf = null;//just to be darned sure 'word' isn't referenced here
@@ -65,34 +76,47 @@ class TermPrefixCursor {
 
     } else { // subsequent advance
       //append to existing
+      assert !bufNeedsToBeCopied;
       prefixBuf.grow(1 + word.length);
       prefixBuf.bytes[prefixBuf.length++] = SEPARATOR_CHAR;
       prefixBuf.append(word);
-      return seekPrefix();
+      if (seekPrefix()) {
+        return true;
+      } else {
+        prefixBuf = null;
+        return false;
+      }
     }
   }
 
-  /** Seeks to prefixBuf or the next prefix of it. Sets docsEnum. **/
+  private void ensureBufIsACopy() {
+    if (!bufNeedsToBeCopied)
+      return;
+    BytesRef word = prefixBuf;
+    prefixBuf = new BytesRef(64);
+    prefixBuf.copyBytes(word);
+    bufNeedsToBeCopied = false;
+  }
+
+  /** Seeks to prefixBuf or the next term that is prefixed by prefixBuf plus the separator char.
+   * Sets docIds. **/
   private boolean seekPrefix() throws IOException {
     TermsEnum.SeekStatus seekStatus = termsEnum.seekCeil(prefixBuf);
 
-    docsEnum = null;//can't re-use :-(
+    docIds = null;//invalidate
     switch (seekStatus) {
       case END:
         return false;
 
       case FOUND:
         docsEnum = termsEnum.docs(liveDocs, docsEnum, DocsEnum.FLAG_NONE);
-        if (liveDocs == null)//then docsEnum is guaranteed to match docs
-          return true;
-
-        //need to verify there are indeed docs, which might not be so when there is a filter
-        if (docsEnum.nextDoc() != DocsEnum.NO_MORE_DOCS) {
-          docsEnum = termsEnum.docs(liveDocs, docsEnum, DocsEnum.FLAG_NONE);//reset
+        docIds =  docsEnumToIntsRef(docsEnum);
+        if (docIds.length > 0) {
           return true;
         }
+
         //Pretend we didn't find it; go to next term
-        docsEnum = null;
+        docIds = null;
         if (termsEnum.next() == null) { // case END
           return false;
         }
@@ -116,8 +140,40 @@ class TermPrefixCursor {
     throw new IllegalStateException(seekStatus.toString());
   }
 
-  /** should only be called after advance* returns true */
-  DocsEnum getDocsEnum() {
-    return docsEnum;
+  /** Returns an IntsRef either cached or reading docsEnum. Not null. */
+  private IntsRef docsEnumToIntsRef(DocsEnum docsEnum) throws IOException {
+    // (The cache can have empty IntsRefs)
+
+    //lookup prefixBuf in a cache
+    if (docIdsCache != null) {
+      docIds = docIdsCache.get(prefixBuf);
+      if (docIds != null) {
+        return docIds;
+      }
+    }
+
+    //read docsEnum
+    docIds = new IntsRef(termsEnum.docFreq());
+    int docId;
+    while ((docId = docsEnum.nextDoc()) != DocsEnum.NO_MORE_DOCS) {
+      docIds.ints[docIds.length++] = docId;
+    }
+    if (docIds.length == 0)
+      docIds = EMPTY_INTSREF;
+
+    //cache
+    if (docIdsCache != null) {
+      ensureBufIsACopy();
+      //clone is shallow; that's okay as the prefix isn't overwritten; it's just appended to
+      docIdsCache.put(prefixBuf.clone(), docIds);
+    }
+    return docIds;
+  }
+
+  /** The docIds of the last call to advance, if it returned true. It might be null, but
+   * its length won't be 0. Treat as immutable. */
+  IntsRef getDocIds() {
+    assert docIds == null || docIds.length != 0;
+    return docIds;
   }
 }
