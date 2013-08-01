@@ -60,10 +60,6 @@ import java.io.IOException;
  *
  *     }.process();
  * </pre></code>
- * <p>
- * <b>TODO:</b> I have no Idea how I can write a unit test, because modifying the
- * TokenStream parsed to the {@link Tagger} is currently not supported by the
- * {@link TaggerRequestHandler}. <p>
  *
  * @author Rupert Westenthaler
  */
