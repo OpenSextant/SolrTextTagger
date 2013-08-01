@@ -48,8 +48,6 @@ import java.util.concurrent.atomic.AtomicReference;
  * Solr.
  *
  * @author David Smiley - dsmiley@mitre.org
- *
- * @deprecated Simply use {@link StreamingResponseCallback} instead.
  */
 public class EmbeddedSolrNoSerializeTest extends SolrTestCaseJ4 {
 
@@ -78,7 +76,7 @@ public class EmbeddedSolrNoSerializeTest extends SolrTestCaseJ4 {
     req.setPath("/tag");
 
     QueryResponse rsp = req.process(solrServer);
-    SolrDocumentList results= (SolrDocumentList) rsp.getResponse().get("matchingDocs");
+    SolrDocumentList results= (SolrDocumentList) rsp.getResponse().get("response");
     assertNotNull(rsp.getResponse().get("tags"));
     assertNotNull(results.get(0));
   }

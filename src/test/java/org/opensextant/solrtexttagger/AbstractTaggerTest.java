@@ -151,7 +151,7 @@ public abstract class AbstractTaggerTest extends SolrTestCaseJ4 {
       //build matchingNames map from matchingDocs doc list in response
       Map<String, String> matchingNames = new HashMap<String, String>();
       SolrIndexSearcher searcher = req.getSearcher();
-      DocList docList = (DocList) rspValues.get("matchingDocs");
+      DocList docList = (DocList) rspValues.get("response");
       DocIterator iter = docList.iterator();
       while (iter.hasNext()) {
         int docId = iter.next();

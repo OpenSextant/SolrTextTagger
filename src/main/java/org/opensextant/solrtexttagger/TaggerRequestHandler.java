@@ -222,7 +222,7 @@ public class TaggerRequestHandler extends RequestHandlerBase {
       docIds[i] = docIdIter.nextDoc();
     }
     DocList docs = new DocSlice(0, docIds.length, docIds, null, matchDocs, 1f);
-    rsp.add("matchingDocs", docs);//TODO use normal location for docs, not this
+    rsp.add("response", docs);//Solr's standard name for matching docs in response
   }
 
   @Override

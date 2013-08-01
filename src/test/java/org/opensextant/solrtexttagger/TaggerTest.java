@@ -72,7 +72,7 @@ public class TaggerTest extends AbstractTaggerTest {
           "<int name=\"endOffset\">6</int>" +
           "<arr name=\"ids\"><str>1</str></arr>" +
         "</lst></arr>" +
-        "<result name=\"matchingDocs\" numFound=\"1\" start=\"0\">" +
+        "<result name=\"response\" numFound=\"1\" start=\"0\">" +
           "<doc><str name=\"id\">1</str><str name=\"name\">London Business School</str></doc>" +
         "</result>\n" +
         "</response>\n";
@@ -95,7 +95,7 @@ public class TaggerTest extends AbstractTaggerTest {
           "str name=\"matchText\">school</str>" +
           "<arr name=\"ids\"><str>1</str></arr>" +
         "</lst></arr>" +
-        "<result name=\"matchingDocs\" numFound=\"1\" start=\"0\">" +
+        "<result name=\"response\" numFound=\"1\" start=\"0\">" +
           "<doc><str name=\"id\">1</str><str name=\"name\">London Business School</str></doc>" +
         "</result>\n" +
         "</response>\n";
