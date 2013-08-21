@@ -282,6 +282,11 @@ public class TaggerFstCorpus implements Serializable {
         }
         int termId = lookupTermId(termBr);
         if (termId == -1){
+          //changed this to a warning as I was getting this for terms with some
+          //rare special characters e.g. '∀' (for all) and a letter looking
+          //similar to the greek letter tau.
+          //in any way it looked better to ignore such terms rather than failing
+          //with an exception and having no FST at all.
           log.warn("Couldn't lookup term TEXT=" + text + " TERM="+termBr.utf8ToString());
           //throw new IllegalStateException("Couldn't lookup term TEXT=" + text + " TERM="+termBr.utf8ToString());
         } else {
