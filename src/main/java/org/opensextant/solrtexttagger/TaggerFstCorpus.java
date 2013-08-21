@@ -24,6 +24,7 @@ package org.opensextant.solrtexttagger;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
 import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
 import org.apache.lucene.analysis.tokenattributes.TermToBytesRefAttribute;
 import org.apache.lucene.document.Document;
@@ -169,9 +170,9 @@ public class TaggerFstCorpus implements Serializable {
       if (docBits != null && !docBits.get(docId))
         continue;
       final Document document = reader.document(docId, fieldNames);
-      
-      IndexableField storedField = document.getField(storedFieldName);
-      if (storedField == null) {
+      //use document.getFields(..) to support multivalued fields!
+      IndexableField[] storedFields = document.getFields(storedFieldName);
+      if (storedFields.length == 0) {
         //Issue #5: in multilingual setting there will be entities that do not have a
         //          labels for all languages. In this case the storedField will be
         //          null. However
@@ -182,45 +183,47 @@ public class TaggerFstCorpus implements Serializable {
         log.trace("docId {} has no (stored) value for field '{}':", docId,storedFieldName);
         continue;
       }
-      String phraseStr = storedField.stringValue();
-
-      //analyze stored value to array of terms (their Ids)
-      IntsRef phraseIdRef = analyze(analyzer, phraseStr);
-      if (phraseIdRef.length == 0) {
-        log.warn("Text: {} was completely eliminated by analyzer for tagging", phraseStr);
-        continue;
-      }
-      
-      if (phraseStr.length() < minLen || phraseStr.length() > maxLen){
-        log.warn("Text: {} was completely eliminated by analyzer for tagging; Too long or too short. LEN={}", phraseStr, phraseStr.length());
-        continue;          
-      }
-
-      if (partialMatches) {
-        //shingle the phrase (aka n-gram but word level, not character)
-        IntsRef shingleIdRef = null;//lazy init, and re-used too
-        assert phraseIdRef.offset == 0;
-        for (int offset = 0; offset < phraseIdRef.length; offset++) {
-          for (int length = 1; offset + length <= phraseIdRef.length && length <= MAX_PHRASE_LEN; length++) {
-            if (shingleIdRef == null) {
-              shingleIdRef = new IntsRef(phraseIdRef.ints, offset, length);
-            } else {
-              shingleIdRef.offset = offset;
-              shingleIdRef.length = length;
-            }
-            if (addIdToWorkingSetValue(workingSet, shingleIdRef, docId))
-              shingleIdRef = null;
-            totalDocIdRefs++;//since we added the docId
-          }
+      for(IndexableField storedField : storedFields){
+        String phraseStr = storedField.stringValue();
+  
+        //analyze stored value to array of terms (their Ids)
+        IntsRef phraseIdRef = analyze(analyzer, phraseStr);
+        if (phraseIdRef.length == 0) {
+          log.warn("Text: {} was completely eliminated by analyzer for tagging", phraseStr);
+          continue;
         }
-      } else {
-        //add complete phrase
-        addIdToWorkingSetValue(workingSet, phraseIdRef, docId);
-        totalDocIdRefs++;//since we added the docId
-      }
-      
-      if (totalDocIdRefs % 100000 == 0){
+        
+        if (phraseStr.length() < minLen || phraseStr.length() > maxLen){
+          log.warn("Text: {} was completely eliminated by analyzer for tagging; Too long or too short. LEN={}", phraseStr, phraseStr.length());
+          continue;          
+        }
+  
+        if (partialMatches) {
+          //shingle the phrase (aka n-gram but word level, not character)
+          IntsRef shingleIdRef = null;//lazy init, and re-used too
+          assert phraseIdRef.offset == 0;
+          for (int offset = 0; offset < phraseIdRef.length; offset++) {
+            for (int length = 1; offset + length <= phraseIdRef.length && length <= MAX_PHRASE_LEN; length++) {
+              if (shingleIdRef == null) {
+                shingleIdRef = new IntsRef(phraseIdRef.ints, offset, length);
+              } else {
+                shingleIdRef.offset = offset;
+                shingleIdRef.length = length;
+              }
+              if (addIdToWorkingSetValue(workingSet, shingleIdRef, docId))
+                shingleIdRef = null;
+              totalDocIdRefs++;//since we added the docId
+            }
+          }
+        } else {
+          //add complete phrase
+          addIdToWorkingSetValue(workingSet, phraseIdRef, docId);
+          totalDocIdRefs++;//since we added the docId
+        }
+        
+        if (totalDocIdRefs % 100000 == 0){
           log.info("Total records reviewed COUNT="+ totalDocIdRefs);
+        }
       }
     }//for each doc
     //TODO: this write a warning if not a single stored field was found for the
@@ -270,18 +273,27 @@ public class TaggerFstCorpus implements Serializable {
 
       int length = termBr.length;
       if (length == 0) {
-        throw new IllegalArgumentException("term: " + text + " analyzed to a zero-length token");
+        OffsetAttribute offset = ts.addAttribute(OffsetAttribute.class);
+        log.warn("token [{}, {}] or term: {} analyzed to a zero-length token",
+            new Object[]{offset.startOffset(),offset.endOffset(),text});
+      } else {
+        if (posIncAtt.getPositionIncrement() != 1) {
+          throw new IllegalArgumentException("term: " + text + " analyzed to a token with posinc != 1");
+        }
+        int termId = lookupTermId(termBr);
+        if (termId == -1){
+          //changed this to a warning as I was getting this for terms with some
+          //rare special characters e.g. '∀' (for all) and a letter looking
+          //similar to the greek letter tau.
+          //in any way it looked better to ignore such terms rather than failing
+          //with an exception and having no FST at all.
+          log.warn("Couldn't lookup term TEXT=" + text + " TERM="+termBr.utf8ToString());
+          //throw new IllegalStateException("Couldn't lookup term TEXT=" + text + " TERM="+termBr.utf8ToString());
+        } else {
+          result.grow(++result.length);
+          result.ints[result.offset + result.length - 1] = termId;
+        }
       }
-      if (posIncAtt.getPositionIncrement() != 1) {
-        throw new IllegalArgumentException("term: " + text + " analyzed to a token with posinc != 1");
-      }
-
-      int termId = lookupTermId(termBr);
-      if (termId == -1)
-        throw new IllegalStateException("Couldn't lookup term TEXT=" + text + " TERM="+termBr.utf8ToString());
-
-      result.grow(++result.length);
-      result.ints[result.offset + result.length - 1] = termId;
     }
     ts.end();
     ts.close();
