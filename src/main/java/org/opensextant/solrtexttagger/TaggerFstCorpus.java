@@ -183,7 +183,7 @@ public class TaggerFstCorpus implements Serializable {
         log.trace("docId {} has no (stored) value for field '{}':", docId,storedFieldName);
         continue;
       }
-      for(IndexableField storedField : storedFields){
+      for (IndexableField storedField : storedFields) {
         String phraseStr = storedField.stringValue();
   
         //analyze stored value to array of terms (their Ids)
@@ -220,11 +220,12 @@ public class TaggerFstCorpus implements Serializable {
           addIdToWorkingSetValue(workingSet, phraseIdRef, docId);
           totalDocIdRefs++;//since we added the docId
         }
-        
+
+        //TODO consider counting by stored-value (!= totalDocIdRefs when partialMatches==true)
         if (totalDocIdRefs % 100000 == 0){
           log.info("Total records reviewed COUNT="+ totalDocIdRefs);
         }
-      }
+      }//for each stored value
     }//for each doc
     //TODO: this write a warning if not a single stored field was found for the
     //      parsed storedFieldName - as this will most likely indicate a wrong
@@ -281,8 +282,8 @@ public class TaggerFstCorpus implements Serializable {
           throw new IllegalArgumentException("term: " + text + " analyzed to a token with posinc != 1");
         }
         int termId = lookupTermId(termBr);
-        if (termId == -1){
-          //changed this to a warning as I was getting this for terms with some
+        if (termId == -1) {
+          //westei: changed this to a warning as I was getting this for terms with some
           //rare special characters e.g. '∀' (for all) and a letter looking
           //similar to the greek letter tau.
           //in any way it looked better to ignore such terms rather than failing
