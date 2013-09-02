@@ -26,6 +26,7 @@ import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
 import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
+import org.apache.lucene.analysis.tokenattributes.PositionLengthAttribute;
 import org.apache.lucene.analysis.tokenattributes.TermToBytesRefAttribute;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.*;
@@ -39,9 +40,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -185,47 +189,53 @@ public class TaggerFstCorpus implements Serializable {
       }
       for(IndexableField storedField : storedFields){
         String phraseStr = storedField.stringValue();
-  
-        //analyze stored value to array of terms (their Ids)
-        IntsRef phraseIdRef = analyze(analyzer, phraseStr);
-        if (phraseIdRef.length == 0) {
-          log.warn("Text: {} was completely eliminated by analyzer for tagging", phraseStr);
-          continue;
-        }
-        
+
         if (phraseStr.length() < minLen || phraseStr.length() > maxLen){
           log.warn("Text: {} was completely eliminated by analyzer for tagging; Too long or too short. LEN={}", phraseStr, phraseStr.length());
           continue;          
         }
   
-        if (partialMatches) {
-          //shingle the phrase (aka n-gram but word level, not character)
-          IntsRef shingleIdRef = null;//lazy init, and re-used too
-          assert phraseIdRef.offset == 0;
-          for (int offset = 0; offset < phraseIdRef.length; offset++) {
-            for (int length = 1; offset + length <= phraseIdRef.length && length <= MAX_PHRASE_LEN; length++) {
-              if (shingleIdRef == null) {
-                shingleIdRef = new IntsRef(phraseIdRef.ints, offset, length);
-              } else {
-                shingleIdRef.offset = offset;
-                shingleIdRef.length = length;
-              }
-              if (addIdToWorkingSetValue(workingSet, shingleIdRef, docId))
-                shingleIdRef = null;
-              totalDocIdRefs++;//since we added the docId
-            }
+        //analyze stored value to array of terms (their Ids)
+        boolean added = false;
+        for(IntsRef phraseIdRef : analyze(analyzer, phraseStr)){
+          if (phraseIdRef.length == 0) {
+            continue;
           }
-        } else {
-          //add complete phrase
-          addIdToWorkingSetValue(workingSet, phraseIdRef, docId);
-          totalDocIdRefs++;//since we added the docId
+          if (partialMatches) {
+            //shingle the phrase (aka n-gram but word level, not character)
+            IntsRef shingleIdRef = null;//lazy init, and re-used too
+            assert phraseIdRef.offset == 0;
+            for (int offset = 0; offset < phraseIdRef.length; offset++) {
+              for (int length = 1; offset + length <= phraseIdRef.length && length <= MAX_PHRASE_LEN; length++) {
+                if (shingleIdRef == null) {
+                  shingleIdRef = new IntsRef(phraseIdRef.ints, offset, length);
+                } else {
+                  shingleIdRef.offset = offset;
+                  shingleIdRef.length = length;
+                }
+                if (addIdToWorkingSetValue(workingSet, shingleIdRef, docId)){
+                  shingleIdRef = null;
+                }
+                added = true;
+                totalDocIdRefs++;//since we added the docId
+              }
+            }
+          } else {
+            //add complete phrase
+            addIdToWorkingSetValue(workingSet, phraseIdRef, docId);
+            added = true;
+            totalDocIdRefs++;//since we added the docId
+          }
         }
-        
+        if(!added){ //warn if we have not added anything for a label
+          log.warn("Text: {} was completely eliminated by analyzer for tagging", phraseStr);
+        }
         if (totalDocIdRefs % 100000 == 0){
-          log.info("Total records reviewed COUNT="+ totalDocIdRefs);
+          log.info("Total records reviewed COUNT={}",totalDocIdRefs);
         }
       }
     }//for each doc
+    log.info("Reviewed all COUNT={} documents",totalDocIdRefs);
     //TODO: this write a warning if not a single stored field was found for the
     //      parsed storedFieldName - as this will most likely indicate a wrong
     //      schema configuration.
@@ -260,26 +270,31 @@ public class TaggerFstCorpus implements Serializable {
    * Analyzes the text argument, converting each term into the corresponding id
    * and concatenating into the result, a list of ids.
    */
-  private IntsRef analyze(Analyzer analyzer, String text) throws IOException {
-    IntsRef result = new IntsRef(8);
+  private Collection<IntsRef> analyze(Analyzer analyzer, String text) throws IOException {
+    Paths paths = new Paths(4);
     TokenStream ts = analyzer.tokenStream("", new StringReader(text));
     TermToBytesRefAttribute byteRefAtt = ts.addAttribute(TermToBytesRefAttribute.class);
     PositionIncrementAttribute posIncAtt = ts.addAttribute(PositionIncrementAttribute.class);
+    PositionLengthAttribute posLenAtt = ts.addAttribute(PositionLengthAttribute.class);
+    int cursor = -1; //to start at index 0
     ts.reset();
     //result.length = 0;
     while (ts.incrementToken()) {
+      int posInc = posIncAtt.getPositionIncrement();
+      if(posInc > 1){
+        //TODO: maybe we do not need this
+        throw new IllegalArgumentException("term: " + text + " analyzed to a "
+            + "token with posinc " + posInc + " (posinc MUST BE 0 or 1)");
+      }
+      cursor = cursor + posInc;
       byteRefAtt.fillBytesRef();
       BytesRef termBr = byteRefAtt.getBytesRef();
-
       int length = termBr.length;
-      if (length == 0) {
+      if (length == 0) { //ignore term (NOTE: that 'empty' is not set)
         OffsetAttribute offset = ts.addAttribute(OffsetAttribute.class);
         log.warn("token [{}, {}] or term: {} analyzed to a zero-length token",
             new Object[]{offset.startOffset(),offset.endOffset(),text});
-      } else {
-        if (posIncAtt.getPositionIncrement() != 1) {
-          throw new IllegalArgumentException("term: " + text + " analyzed to a token with posinc != 1");
-        }
+      } else { //process term
         int termId = lookupTermId(termBr);
         if (termId == -1){
           //changed this to a warning as I was getting this for terms with some
@@ -290,16 +305,15 @@ public class TaggerFstCorpus implements Serializable {
           log.warn("Couldn't lookup term TEXT=" + text + " TERM="+termBr.utf8ToString());
           //throw new IllegalStateException("Couldn't lookup term TEXT=" + text + " TERM="+termBr.utf8ToString());
         } else {
-          result.grow(++result.length);
-          result.ints[result.offset + result.length - 1] = termId;
+          paths.addTerm(termId, cursor, posLenAtt.getPositionLength());
         }
       }
     }
     ts.end();
     ts.close();
-    return result;
+    return paths.getIntRefs();
   }
-
+  
   /** Takes workingSet and returns sorted phrases and build ext doc id tables. */
   private IntsRef[] buildSortedPhrasesAndIdTables(HashMap<IntsRef, IntsRef> workingSet) throws IOException {
     log.debug("Building doc ID lookup tables...");
