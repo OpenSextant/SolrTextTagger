@@ -277,9 +277,13 @@ public class TaggerFstCorpus implements Serializable {
     TermToBytesRefAttribute byteRefAtt = ts.addAttribute(TermToBytesRefAttribute.class);
     PositionIncrementAttribute posIncAtt = ts.addAttribute(PositionIncrementAttribute.class);
     PositionLengthAttribute posLenAtt = ts.addAttribute(PositionLengthAttribute.class);
-    //for debugging
-    CharTermAttribute termAtt = ts.addAttribute(CharTermAttribute.class);
-    Map<Integer,String> termIdMap = new HashMap<Integer,String>();
+    //for trace level debugging the consumed Tokens and the generated Paths
+    CharTermAttribute termAtt = null; //trace level debugging only
+    Map<Integer,String> termIdMap = null; //trace level debugging only
+    if(log.isTraceEnabled()){
+      termAtt = ts.addAttribute(CharTermAttribute.class);
+      termIdMap = new HashMap<Integer,String>();
+    }
     int cursor = -1; //to start at index 0
     ts.reset();
     //result.length = 0;
@@ -300,9 +304,11 @@ public class TaggerFstCorpus implements Serializable {
             new Object[]{offset.startOffset(),offset.endOffset(),text});
       } else { //process term
         int termId = lookupTermId(termBr);
-        log.info("Token: {} [cursor: {}, posInc: {}, posLen: {}, termId {}]",
+        if(log.isTraceEnabled()){
+          log.info("Token: {} [cursor: {}, posInc: {}, posLen: {}, termId {}]",
             new Object[]{termAtt.toString(),cursor,posInc, 
                 posLenAtt.getPositionLength(),termId});
+        }
        if (termId == -1) {
           //westei: changed this to a warning as I was getting this for terms with some
           //rare special characters e.g. '∀' (for all) and a letter looking
@@ -312,7 +318,9 @@ public class TaggerFstCorpus implements Serializable {
           log.warn("Couldn't lookup term TEXT=" + text + " TERM="+termBr.utf8ToString());
           //throw new IllegalStateException("Couldn't lookup term TEXT=" + text + " TERM="+termBr.utf8ToString());
         } else {
-          termIdMap.put(termId,termAtt.toString());
+          if(log.isTraceEnabled()){
+            termIdMap.put(termId,termAtt.toString());
+          }
           paths.addTerm(termId, cursor, posLenAtt.getPositionLength());
         }
       }
@@ -320,13 +328,15 @@ public class TaggerFstCorpus implements Serializable {
     ts.end();
     ts.close();
     Collection<IntsRef> intsRefs = paths.getIntRefs();
-    int n = 1;
-    for(IntsRef ref : intsRefs){
-        StringBuilder sb = new StringBuilder();
-        for(int i = ref.offset; i<ref.length;i++){
-            sb.append(termIdMap.get(ref.ints[i])).append(" ");
-        }
-        log.info(" {}: {}",n++,sb);
+    if(log.isTraceEnabled()){
+      int n = 1;
+      for(IntsRef ref : intsRefs){
+          StringBuilder sb = new StringBuilder();
+          for(int i = ref.offset; i<ref.length;i++){
+              sb.append(termIdMap.get(ref.ints[i])).append(" ");
+          }
+          log.info(" {}: {}",n++,sb);
+      }
     }
     return intsRefs;
   }

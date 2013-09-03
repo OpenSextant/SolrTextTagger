@@ -23,7 +23,6 @@
 package org.opensextant.solrtexttagger;
 
 import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
 import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
 import org.apache.lucene.analysis.tokenattributes.TermToBytesRefAttribute;
@@ -43,7 +42,7 @@ public abstract class Tagger {
   private final TaggerFstCorpus corpus;
 
   private final TokenStream tokenStream;
-  private final CharTermAttribute termAtt;
+//  private final CharTermAttribute termAtt;
   private final PositionIncrementAttribute posIncAtt;
   private final TermToBytesRefAttribute byteRefAtt;
   private final OffsetAttribute offsetAtt;
@@ -55,7 +54,7 @@ public abstract class Tagger {
                 TagClusterReducer tagClusterReducer) throws IOException {
     this.corpus = corpus;
     this.tokenStream = tokenStream;
-    termAtt = tokenStream.addAttribute(CharTermAttribute.class);
+//    termAtt = tokenStream.addAttribute(CharTermAttribute.class);
     byteRefAtt = tokenStream.addAttribute(TermToBytesRefAttribute.class);
     posIncAtt = tokenStream.addAttribute(PositionIncrementAttribute.class);
     offsetAtt = tokenStream.addAttribute(OffsetAttribute.class);
@@ -75,7 +74,6 @@ public abstract class Tagger {
     int lastStartOffset = -1;
 
     while (tokenStream.incrementToken()) {
-      String term = termAtt.toString();
       lastStartOffset = offsetAtt.startOffset();
 
       //-- If PositionIncrement > 1 then finish all tags
