@@ -2,7 +2,6 @@ package org.opensextant.solrtexttagger;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.List;
 
 import org.apache.lucene.analysis.TokenStream;
@@ -41,18 +40,18 @@ class Paths {
   
   public void addTerm(int termId, int start, int length){
     final int end = start + length;
-    if(start != pos){ //first token of a new position
+    if (start != pos) { //first token of a new position
       updatePos(start);
-      if(pos == 0){ //create a new path and add the term
+      if (pos == 0) { //create a new path and add the term
         new Path().add(termId, end);
       } else { //add the parsed token to all active
-        for(Path path : active){
+        for (Path path : active) {
           path.add(termId, end);
         }
       }
     } else { //alternate token for the same position
       //clone active paths and set last element of the close to the alternate
-      for(Path path : active){
+      for (Path path : active) {
         path.clone().set(termId, end);
       }
     }
@@ -64,7 +63,7 @@ class Paths {
    */
   public Collection<IntsRef> getIntRefs(){
     List<IntsRef> refs = new ArrayList<IntsRef>(paths.size());
-    for(Path path : paths){
+    for (Path path : paths) {
       refs.add(path.getPath());
     }
     return refs;
@@ -78,8 +77,8 @@ class Paths {
     pos = start;
     if(pos > 0){
       active.clear();
-      for(Path path : paths){
-        if(path.pEnd == pos){
+      for (Path path : paths) {
+        if (path.pEnd == pos) {
           active.add(path);
         }
       }
@@ -161,14 +160,4 @@ class Paths {
       return new Path(path.clone(),pEnd);
     }
   }
-  /**
-   * Sorts {@link Path}s based on their
-   */
-  public static Comparator<Path> PATH_LENGTH_COMPARATOR = new Comparator<Path>() {
-
-    @Override
-    public int compare(Path p1, Path p2) {
-      return p1.pEnd < p2.pEnd ? -1 : p1.pEnd == p2.pEnd ? 0 : 1;
-    }};
-    
-  }
+}

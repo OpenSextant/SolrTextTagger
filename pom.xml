@@ -59,6 +59,12 @@
       <email>dsmiley@mitre.org</email>
       <organization>MITRE</organization>
     </developer>
+    <developer>
+      <name>Rupert Westenthaler</name>
+      <roles>
+        <role>contributor</role>
+      </roles>
+    </developer>
   </developers>
 
   <properties>

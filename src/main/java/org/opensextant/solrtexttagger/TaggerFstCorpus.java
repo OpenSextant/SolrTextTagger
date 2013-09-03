@@ -40,12 +40,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 /**
@@ -187,17 +185,17 @@ public class TaggerFstCorpus implements Serializable {
         log.trace("docId {} has no (stored) value for field '{}':", docId,storedFieldName);
         continue;
       }
-      for(IndexableField storedField : storedFields){
+      for (IndexableField storedField : storedFields) {
         String phraseStr = storedField.stringValue();
 
-        if (phraseStr.length() < minLen || phraseStr.length() > maxLen){
+        if (phraseStr.length() < minLen || phraseStr.length() > maxLen) {
           log.warn("Text: {} was completely eliminated by analyzer for tagging; Too long or too short. LEN={}", phraseStr, phraseStr.length());
           continue;          
         }
   
         //analyze stored value to array of terms (their Ids)
         boolean added = false;
-        for(IntsRef phraseIdRef : analyze(analyzer, phraseStr)){
+        for (IntsRef phraseIdRef : analyze(analyzer, phraseStr)) {
           if (phraseIdRef.length == 0) {
             continue;
           }
@@ -213,7 +211,7 @@ public class TaggerFstCorpus implements Serializable {
                   shingleIdRef.offset = offset;
                   shingleIdRef.length = length;
                 }
-                if (addIdToWorkingSetValue(workingSet, shingleIdRef, docId)){
+                if (addIdToWorkingSetValue(workingSet, shingleIdRef, docId)) {
                   shingleIdRef = null;
                 }
                 added = true;
@@ -227,13 +225,14 @@ public class TaggerFstCorpus implements Serializable {
             totalDocIdRefs++;//since we added the docId
           }
         }
-        if(!added){ //warn if we have not added anything for a label
+        if (!added) { //warn if we have not added anything for a label
           log.warn("Text: {} was completely eliminated by analyzer for tagging", phraseStr);
         }
-        if (totalDocIdRefs % 100000 == 0){
+        //TODO consider counting by stored-value (!= totalDocIdRefs when partialMatches==true)
+        if (totalDocIdRefs % 100000 == 0) {
           log.info("Total records reviewed COUNT={}",totalDocIdRefs);
         }
-      }
+      }//for each stored value
     }//for each doc
     log.info("Reviewed all COUNT={} documents",totalDocIdRefs);
     //TODO: this write a warning if not a single stored field was found for the
@@ -296,8 +295,8 @@ public class TaggerFstCorpus implements Serializable {
             new Object[]{offset.startOffset(),offset.endOffset(),text});
       } else { //process term
         int termId = lookupTermId(termBr);
-        if (termId == -1){
-          //changed this to a warning as I was getting this for terms with some
+        if (termId == -1) {
+          //westei: changed this to a warning as I was getting this for terms with some
           //rare special characters e.g. '∀' (for all) and a letter looking
           //similar to the greek letter tau.
           //in any way it looked better to ignore such terms rather than failing
