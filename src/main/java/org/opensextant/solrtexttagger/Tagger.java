@@ -23,6 +23,7 @@
 package org.opensextant.solrtexttagger;
 
 import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
 import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
 import org.apache.lucene.analysis.tokenattributes.TermToBytesRefAttribute;
@@ -42,7 +43,7 @@ public abstract class Tagger {
   private final TaggerFstCorpus corpus;
 
   private final TokenStream tokenStream;
-  //private final CharTermAttribute termAtt;
+  private final CharTermAttribute termAtt;
   private final PositionIncrementAttribute posIncAtt;
   private final TermToBytesRefAttribute byteRefAtt;
   private final OffsetAttribute offsetAtt;
@@ -54,7 +55,7 @@ public abstract class Tagger {
                 TagClusterReducer tagClusterReducer) throws IOException {
     this.corpus = corpus;
     this.tokenStream = tokenStream;
-    //termAtt = tokenStream.addAttribute(CharTermAttribute.class);
+    termAtt = tokenStream.addAttribute(CharTermAttribute.class);
     byteRefAtt = tokenStream.addAttribute(TermToBytesRefAttribute.class);
     posIncAtt = tokenStream.addAttribute(PositionIncrementAttribute.class);
     offsetAtt = tokenStream.addAttribute(OffsetAttribute.class);
@@ -74,20 +75,23 @@ public abstract class Tagger {
     int lastStartOffset = -1;
 
     while (tokenStream.incrementToken()) {
-
-      //sanity-check that start offsets don't decrease
-      if (lastStartOffset > offsetAtt.startOffset())
-        throw new IllegalStateException("startOffset must be >= the one before: "+lastStartOffset);
+      String term = termAtt.toString();
       lastStartOffset = offsetAtt.startOffset();
 
       //-- If PositionIncrement > 1 then finish all tags
       int posInc = posIncAtt.getPositionIncrement();
-      if (posInc < 1) {
-        throw new IllegalStateException("term: " + byteRefAtt.getBytesRef().utf8ToString()
-            + " analyzed to a token with posinc < 1: "+posInc);
+      if (posInc < 1) { 
+        //tokens with a position increment < 1 are handled when building the FST
+        //and can be ignored when tagging a text
+        continue;
       } else if (posInc > 1) {
         advanceTagsAndProcessClusterIfDone(head, -1);
       }
+      //sanity-check that start offsets don't decrease
+      //NOTE: moved this after the 'posInc < 1' check as this might be the case
+      //      for alternate tokens
+      if (lastStartOffset > offsetAtt.startOffset())
+        throw new IllegalStateException("startOffset must be >= the one before: "+lastStartOffset);
 
       final int termId;
       //NOTE: we need to lookup tokens if

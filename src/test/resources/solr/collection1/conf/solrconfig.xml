@@ -37,6 +37,14 @@
     <bool name="partialMatches">false</bool>
     <str name="fq">NOT name:(of the)</str><!-- filter out -->
   </requestHandler>
+  
+  <!-- used for testing PositionIncrementAttribute and PositionLengthAttribute support -->
+  <requestHandler name="/tag2" class="org.opensextant.solrtexttagger.TaggerRequestHandler">
+    <str name="indexedField">name_tagIdx2</str>
+    <str name="storedField">name</str>
+    <bool name="partialMatches">false</bool>
+    <str name="fq">NOT name:(of the)</str><!-- filter out -->
+  </requestHandler>
 
   <requestHandler name="/tagPartial" class="org.opensextant.solrtexttagger.TaggerRequestHandler">
     <str name="indexedField">name_tagIdx</str>

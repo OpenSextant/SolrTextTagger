@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.List;
 
 import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.util.ArrayUtil;
 import org.apache.lucene.util.IntsRef;
 
 /**
@@ -40,19 +41,19 @@ class Paths {
   
   public void addTerm(int termId, int start, int length){
     final int end = start + length;
-    if (start != pos) { //first token of a new position
-      updatePos(start);
-      if (pos == 0) { //create a new path and add the term
-        new Path().add(termId, end);
-      } else { //add the parsed token to all active
+    if(start == 0) { //for the first position always create new paths
+      new Path().add(termId, end);
+    } else {
+      if (start != pos) { //first token of a new position
+        updatePos(start);
         for (Path path : active) {
           path.add(termId, end);
         }
-      }
-    } else { //alternate token for the same position
-      //clone active paths and set last element of the close to the alternate
-      for (Path path : active) {
-        path.clone().set(termId, end);
+      } else { //alternate token for the same position
+        //clone active paths and set last element of the close to the alternate
+        for (Path path : active) {
+          path.clone().set(termId, end);
+        }
       }
     }
   }
@@ -157,7 +158,10 @@ class Paths {
      */
     @Override
     public Path clone(){
-      return new Path(path.clone(),pEnd);
+      //clone the array as IntsRef#clone() does not!
+      int[] clone = new int[path.ints.length-path.offset]; //use same capacity
+      System.arraycopy(path.ints, path.offset, clone, 0, path.length); //copy data
+      return new Path(new IntsRef(clone,0,path.length),pEnd);
     }
   }
 }
