@@ -169,6 +169,7 @@ public class TaggerFstCorpus implements Serializable {
 
     totalDocIdRefs = 0;
 
+    PhraseBuilder paths = new PhraseBuilder(4); //one instance reused for all analyzed labels
     //get indexed terms for each live docs
     for (int docId = 0; docId < reader.maxDoc(); docId++) {
       if (docBits != null && !docBits.get(docId))
@@ -197,7 +198,7 @@ public class TaggerFstCorpus implements Serializable {
   
         //analyze stored value to array of terms (their Ids)
         boolean added = false;
-        for (IntsRef phraseIdRef : analyze(analyzer, phraseStr)) {
+        for (IntsRef phraseIdRef : analyze(analyzer, phraseStr, paths)) {
           if (phraseIdRef.length == 0) {
             continue;
           }
@@ -270,9 +271,22 @@ public class TaggerFstCorpus implements Serializable {
   /**
    * Analyzes the text argument, converting each term into the corresponding id
    * and concatenating into the result, a list of ids.
+   * @param analyzer the Lucene {@link Analyzer} used to process the text
+   * @param text the text to analyze
+   * @param paths the {@link PhraseBuilder} instance used to serialize the 
+   * {@link TokenStream}. If not <code>null</code> the instance will be
+   * {@link PhraseBuilder#reset() reset} otherwise a new Paths instance will be
+   * created.
+   * @return the phrases extracted from the TokenStream. Each phrase is
+   * represented by an {@link IntsRef} where single words are represented by the
+   * <code>int termId</code>.
    */
-  private Collection<IntsRef> analyze(Analyzer analyzer, String text) throws IOException {
-    Paths paths = new Paths(4);
+  private IntsRef[] analyze(Analyzer analyzer, String text, PhraseBuilder paths) throws IOException {
+    if(paths == null){
+        paths = new PhraseBuilder(4);
+    } else {
+        paths.reset(); //reset the paths instance before usage
+    }
     TokenStream ts = analyzer.tokenStream("", new StringReader(text));
     TermToBytesRefAttribute byteRefAtt = ts.addAttribute(TermToBytesRefAttribute.class);
     PositionIncrementAttribute posIncAtt = ts.addAttribute(PositionIncrementAttribute.class);
@@ -305,9 +319,9 @@ public class TaggerFstCorpus implements Serializable {
       } else { //process term
         int termId = lookupTermId(termBr);
         if(log.isTraceEnabled()){
-          log.info("Token: {} [cursor: {}, posInc: {}, posLen: {}, termId {}]",
-            new Object[]{termAtt.toString(),cursor,posInc, 
-                posLenAtt.getPositionLength(),termId});
+          log.trace("Token: {} [cursor: {}, posInc: {}, posLen: {}, termId {}]",
+            new Object[]{termAtt, cursor, posInc, posLenAtt.getPositionLength(),
+                  termId});
         }
        if (termId == -1) {
           //westei: changed this to a warning as I was getting this for terms with some
@@ -327,7 +341,7 @@ public class TaggerFstCorpus implements Serializable {
     }
     ts.end();
     ts.close();
-    Collection<IntsRef> intsRefs = paths.getIntRefs();
+    IntsRef[] intsRefs = paths.getIntRefs();
     if(log.isTraceEnabled()){
       int n = 1;
       for(IntsRef ref : intsRefs){
@@ -335,7 +349,7 @@ public class TaggerFstCorpus implements Serializable {
           for(int i = ref.offset; i<ref.length;i++){
               sb.append(termIdMap.get(ref.ints[i])).append(" ");
           }
-          log.info(" {}: {}",n++,sb);
+          log.trace(" {}: {}",n++,sb);
       }
     }
     return intsRefs;
