@@ -22,6 +22,8 @@
 
 package org.opensextant.solrtexttagger;
 
+import junit.framework.Assert;
+
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -53,8 +55,33 @@ public class PosIncPosLenTaggerTest extends AbstractTaggerTest {
     assertTags("Season 24 of the Simpsons will be in television bext month", "television");
     assertTags("An Internet TV service providing on demand access.", "TV");
     
+    buildNames("Domain Name Service");
+    assertTags("The DNS server is down.", "DNS");
+    
+    buildNames("DNS");
+    assertTags("The DNS server is down.", "DNS");
+    assertTags("The Domain Name Service server is down.", "Domain Name Service");
   }
 
+  /**
+   * Multi token synonyms can not be supported as explained in the limitation
+   * section of <a href="http://blog.mikemccandless.com/2012/04/lucenes-tokenstreams-are-actually.html" >
+   * @throws Exception
+   */
+  @Test
+  public void testUnsupportedMultiTokenSynonyms() throws Exception {
+    this.requestHandler = "/tag2";
+    this.overlaps = "LONGEST_DOMINANT_RIGHT";
+
+    try {
+      buildNames("USA"); //mapped to "United States of America" -- FAILS
+      Assert.fail("expects an UnsupportedTokenException!");
+    } catch (RuntimeException e) {
+      //expects an UnsupportedTokenException as cause
+      Assert.assertTrue(e.getCause() instanceof UnsupportedTokenException);
+    }
+  }
+  
   /**
    * Stop words are just removed from the token stream. So this is not expected
    * to cause any troubles.<p>
@@ -85,15 +112,26 @@ public class PosIncPosLenTaggerTest extends AbstractTaggerTest {
    * 
    * @throws Exception
    */
-//  @Test
-//  public void testWordDelimiter() throws Exception {
-//    this.requestHandler = "/tag2";
-//    this.overlaps = "LONGEST_DOMINANT_RIGHT";
-//
-//    buildNames("Wi-Fi");
-//
-//    assertTags("My Wi-Fi network is not working.", "Wi-Fi");
-//    assertTags("My Wifi network is not working.", "Wifi");
-//  }
-  
+  @Test
+  public void testWordDelimiter() throws Exception {
+    this.requestHandler = "/tag2";
+    this.overlaps = "LONGEST_DOMINANT_RIGHT";
+
+    buildNames("Wi-Fi");
+
+    assertTags("My Wi-Fi network is not working.", "Wi-Fi");
+    assertTags("My Wifi network is not working.", "Wifi");
+    assertTags("My Wi fi network is not working.", "Wi fi");
+  }
+
+  @Test
+  public void testSynonymsAndDelimiterCombinded() throws Exception {
+    this.requestHandler = "/tag2";
+    this.overlaps = "LONGEST_DOMINANT_RIGHT";
+
+    buildNames("kml2gpx converter");
+
+    assertTags("In need a KML to GPX converter", "KML to GPX converter");
+  }
+
 }

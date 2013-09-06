@@ -36,6 +36,7 @@
   <logger name="org.apache.solr" level="WARN"/>
   <!--<logger name="org.apache.solr.SolrTestCaseJ4" level="INFO"/>-->
   <logger name="org.opensextant.solrtexttagger.TaggerTest" level="DEBUG"/>
+  <!--<logger name="org.opensextant.solrtexttagger.TaggerFstCorpus" level="TRACE"/>-->
 
   <root level="INFO">
     <appender-ref ref="STDOUT" />

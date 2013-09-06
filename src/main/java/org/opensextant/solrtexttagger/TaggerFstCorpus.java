@@ -42,7 +42,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -291,6 +290,7 @@ public class TaggerFstCorpus implements Serializable {
     TermToBytesRefAttribute byteRefAtt = ts.addAttribute(TermToBytesRefAttribute.class);
     PositionIncrementAttribute posIncAtt = ts.addAttribute(PositionIncrementAttribute.class);
     PositionLengthAttribute posLenAtt = ts.addAttribute(PositionLengthAttribute.class);
+    OffsetAttribute offsetAtt = ts.addAttribute(OffsetAttribute.class);
     //for trace level debugging the consumed Tokens and the generated Paths
     CharTermAttribute termAtt = null; //trace level debugging only
     Map<Integer,String> termIdMap = null; //trace level debugging only
@@ -298,7 +298,6 @@ public class TaggerFstCorpus implements Serializable {
       termAtt = ts.addAttribute(CharTermAttribute.class);
       termIdMap = new HashMap<Integer,String>();
     }
-    int cursor = -1; //to start at index 0
     ts.reset();
     //result.length = 0;
     while (ts.incrementToken()) {
@@ -308,7 +307,6 @@ public class TaggerFstCorpus implements Serializable {
         throw new IllegalArgumentException("term: " + text + " analyzed to a "
             + "token with posinc " + posInc + " (posinc MUST BE 0 or 1)");
       }
-      cursor = cursor + posInc;
       byteRefAtt.fillBytesRef();
       BytesRef termBr = byteRefAtt.getBytesRef();
       int length = termBr.length;
@@ -319,9 +317,9 @@ public class TaggerFstCorpus implements Serializable {
       } else { //process term
         int termId = lookupTermId(termBr);
         if(log.isTraceEnabled()){
-          log.trace("Token: {} [cursor: {}, posInc: {}, posLen: {}, termId {}]",
-            new Object[]{termAtt, cursor, posInc, posLenAtt.getPositionLength(),
-                  termId});
+          log.trace("Token: {}, posInc: {}, posLen: {}, offset: [{},{}], termId {}",
+            new Object[]{termAtt, posInc, posLenAtt.getPositionLength(),
+                offsetAtt.startOffset(), offsetAtt.endOffset(), termId});
         }
        if (termId == -1) {
           //westei: changed this to a warning as I was getting this for terms with some
@@ -335,13 +333,22 @@ public class TaggerFstCorpus implements Serializable {
           if(log.isTraceEnabled()){
             termIdMap.put(termId,termAtt.toString());
           }
-          paths.addTerm(termId, cursor, posLenAtt.getPositionLength());
+          try {
+            paths.addTerm(termId, offsetAtt.startOffset(), offsetAtt.endOffset(),
+                posInc, posLenAtt.getPositionLength());
+          } catch (UnsupportedTokenException e) {
+            //catch because here we can also print the text that failed to encode
+            log.error("Problematic Token '{}'[offset:[{},{}], posInc: {}] of Text '{}' ",
+                new Object[]{ byteRefAtt, offsetAtt.startOffset(), 
+                    offsetAtt.endOffset(), posInc, text});
+            throw e;
+          }
         }
       }
     }
     ts.end();
     ts.close();
-    IntsRef[] intsRefs = paths.getIntRefs();
+    IntsRef[] intsRefs = paths.getPhrases();
     if(log.isTraceEnabled()){
       int n = 1;
       for(IntsRef ref : intsRefs){

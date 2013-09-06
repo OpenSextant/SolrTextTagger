@@ -16,4 +16,13 @@
 GB,gib,gigabyte,gigabytes
 MB,mib,megabyte,megabytes
 Television, TV
+2,to
 
+# this is used to validate UnsupportedTermException
+USA, United States of America, US, United States
+
+# {term} => {multiple-term} synonym mappings like
+# DNS => Domain Name Service
+# can be encoded, but are problematic at search/tagging time
+# only the reverse mappings ({multiple-terms} => {term}) are supported
+Domain Name Service => DNS
