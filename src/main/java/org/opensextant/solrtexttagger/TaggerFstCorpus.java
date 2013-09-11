@@ -197,7 +197,14 @@ public class TaggerFstCorpus implements Serializable {
   
         //analyze stored value to array of terms (their Ids)
         boolean added = false;
-        for (IntsRef phraseIdRef : analyze(analyzer, phraseStr, paths)) {
+        final IntsRef[] phrasesIdRefs;
+        try {
+            phrasesIdRefs = analyze(analyzer, phraseStr, paths);
+        } catch (UnsupportedTokenException e) {
+            log.warn("Problematic text read from field '{}'",storedFieldName);
+            throw e;
+        }
+        for (IntsRef phraseIdRef : phrasesIdRefs) {
           if (phraseIdRef.length == 0) {
             continue;
           }
@@ -272,7 +279,7 @@ public class TaggerFstCorpus implements Serializable {
    * and concatenating into the result, a list of ids.
    * @param analyzer the Lucene {@link Analyzer} used to process the text
    * @param text the text to analyze
-   * @param paths the {@link PhraseBuilder} instance used to serialize the 
+   * @param pb the {@link PhraseBuilder} instance used to serialize the 
    * {@link TokenStream}. If not <code>null</code> the instance will be
    * {@link PhraseBuilder#reset() reset} otherwise a new Paths instance will be
    * created.
@@ -280,11 +287,11 @@ public class TaggerFstCorpus implements Serializable {
    * represented by an {@link IntsRef} where single words are represented by the
    * <code>int termId</code>.
    */
-  private IntsRef[] analyze(Analyzer analyzer, String text, PhraseBuilder paths) throws IOException {
-    if(paths == null){
-        paths = new PhraseBuilder(4);
+  private IntsRef[] analyze(Analyzer analyzer, String text, PhraseBuilder pb) throws IOException {
+    if(pb == null){
+        pb = new PhraseBuilder(4);
     } else {
-        paths.reset(); //reset the paths instance before usage
+        pb.reset(); //reset the paths instance before usage
     }
     TokenStream ts = analyzer.tokenStream("", new StringReader(text));
     TermToBytesRefAttribute byteRefAtt = ts.addAttribute(TermToBytesRefAttribute.class);
@@ -334,7 +341,7 @@ public class TaggerFstCorpus implements Serializable {
             termIdMap.put(termId,termAtt.toString());
           }
           try {
-            paths.addTerm(termId, offsetAtt.startOffset(), offsetAtt.endOffset(),
+            pb.addTerm(termId, offsetAtt.startOffset(), offsetAtt.endOffset(),
                 posInc, posLenAtt.getPositionLength());
           } catch (UnsupportedTokenException e) {
             //catch because here we can also print the text that failed to encode
@@ -348,7 +355,7 @@ public class TaggerFstCorpus implements Serializable {
     }
     ts.end();
     ts.close();
-    IntsRef[] intsRefs = paths.getPhrases();
+    IntsRef[] intsRefs = pb.getPhrases();
     if(log.isTraceEnabled()){
       int n = 1;
       for(IntsRef ref : intsRefs){

@@ -13,8 +13,8 @@
 #-----------------------------------------------------------------------
 
 # Some synonym groups specific to this example
-GB,gib,gigabyte,gigabytes
-MB,mib,megabyte,megabytes
+GB,GiB,Gigabyte,Gigabytes
+MB,MiB,Megabyte,Megabytes
 Television, TV
 2,to
 

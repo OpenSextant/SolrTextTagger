@@ -28,6 +28,8 @@ import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
 import org.apache.lucene.analysis.tokenattributes.TermToBytesRefAttribute;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.IntsRef;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
@@ -39,6 +41,8 @@ import java.io.IOException;
  */
 public abstract class Tagger {
 
+  private final Logger log = LoggerFactory.getLogger(Tagger.class);
+    
   private final TaggerFstCorpus corpus;
 
   private final TokenStream tokenStream;
@@ -71,25 +75,31 @@ public abstract class Tagger {
 
     MyFstCursor<Long> cursor = null;
 
-    int lastStartOffset = -1;
+    int lastEndOffset = -1;
 
     while (tokenStream.incrementToken()) {
-      lastStartOffset = offsetAtt.startOffset();
+      if(log.isTraceEnabled()){
+        log.trace("Token: {}, posInc: {},  offset: [{},{}]",
+          new Object[]{byteRefAtt, posIncAtt.getPositionIncrement(), 
+                offsetAtt.startOffset(), offsetAtt.endOffset()});
+      }
 
       //-- If PositionIncrement > 1 then finish all tags
       int posInc = posIncAtt.getPositionIncrement();
-      if (posInc < 1) { 
-        //tokens with a position increment < 1 are handled when building the FST
-        //and can be ignored when tagging a text
+      if (posInc < 1 || offsetAtt.startOffset() < lastEndOffset) { 
+        //tokens with a position increment < 1 (alternate tokens) can be
+        //ignored as all alternates are encoded in the FST
+        //Also Tokens overlapping with already processed tokens can be ignored
+        log.trace("  ... ignore token");
         continue;
-      } else if (posInc > 1) {
+      } 
+      //we will process this token ...
+      lastEndOffset = offsetAtt.endOffset(); //update lastEndOffset
+
+      if (posInc > 1) {
+        log.trace("   - posInc > 1 ... mark cluster as done");
         advanceTagsAndProcessClusterIfDone(head, -1);
       }
-      //sanity-check that start offsets don't decrease
-      //NOTE: moved this after the 'posInc < 1' check as this might be the case
-      //      for alternate tokens
-      if (lastStartOffset > offsetAtt.startOffset())
-        throw new IllegalStateException("startOffset must be >= the one before: "+lastStartOffset);
 
       final int termId;
       //NOTE: we need to lookup tokens if

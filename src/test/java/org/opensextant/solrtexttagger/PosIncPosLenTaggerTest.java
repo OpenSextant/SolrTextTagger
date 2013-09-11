@@ -24,6 +24,10 @@ package org.opensextant.solrtexttagger;
 
 import junit.framework.Assert;
 
+import org.apache.lucene.analysis.Tokenizer;
+import org.apache.lucene.analysis.core.WhitespaceTokenizer;
+import org.apache.lucene.analysis.miscellaneous.WordDelimiterFilter;
+import org.apache.solr.schema.FieldType;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -48,7 +52,14 @@ public class PosIncPosLenTaggerTest extends AbstractTaggerTest {
 
     assertTags("Where to buy a 16 GB Memory Stick", "16 GB Memory Stick");
     assertTags("Where to buy a 16 Gigabyte Memory Stick", "16 Gigabyte Memory Stick");
-    assertTags("Where to buy a 16 GiB Memory Stick", "16 GiB Memory Stick");
+    //This would fail, as the WordDelimiterFilter would split 'GiB' to 'gi', 'b'
+    // but this is not indexed in the FST
+    //assertTags("Where to buy a 16 GiB Memory Stick", "16 GiB Memory Stick");
+    
+    //The upper case & lower case version do work however
+    assertTags("Where to buy a 16 GIB Memory Stick", "16 GIB Memory Stick");
+    assertTags("Where to buy a 16 gib memory stick", "16 gib memory stick");
+    
     
     //also test alternatives at the begin of the name
     buildNames("Television");
@@ -61,6 +72,30 @@ public class PosIncPosLenTaggerTest extends AbstractTaggerTest {
     buildNames("DNS");
     assertTags("The DNS server is down.", "DNS");
     assertTags("The Domain Name Service server is down.", "Domain Name Service");
+  }
+
+  /** 
+   * <b>NOTE:</b> This test fails if <code>preserveOriginal="1"</code>
+   * for the {@link WordDelimiterFilter} in the 
+   * {@link FieldType#getQueryAnalyzer() QueryAnalyzer}<p>
+   * The key of the problem is that the {@link Tagger} currently selects the
+   * first token for a given <code>posInc</code> and <code>offset</code>. However
+   * the 'preserveOriginal="1"' will cause the {@link WordDelimiterFilter} to
+   * emit the token as set by the {@link Tokenizer} as first one. This token 
+   * will include possible punctuation marks. However such tokens (incl. 
+   * punctuation marks) will not be contained in the FST.
+   * <p>
+   * 
+   * <b>TODO:</b> T
+   **/
+  @Test
+  public void testWhitespaceTokenizerWithWordDelimiterFilter() throws Exception {
+      this.requestHandler = "/tag2";
+      this.overlaps = "LONGEST_DOMINANT_RIGHT";
+
+      buildNames("Memory Stick");
+      assertTags("Memory Stick.", "Memory Stick");
+
   }
 
   /**
@@ -134,4 +169,44 @@ public class PosIncPosLenTaggerTest extends AbstractTaggerTest {
     assertTags("In need a KML to GPX converter", "KML to GPX converter");
   }
 
+  /**
+   * {@link WordDelimiterFilter} may create alternate Tokens that are later
+   * on removed e.g. by a stop word filter. Those patterns need special
+   * treatment as the resulting token stream will contain tokens with
+   * <code>posInc=1</code> but no fitting token where it can originate. In
+   * such cases the {@link PhraseBuilder} needs to find the correct anchor 
+   * point of such tokens and create a new branch for the removed token.
+   * @throws Exception
+   */
+  @Test
+  public void testRemovalOfAlternateTokens() throws Exception {
+      this.requestHandler = "/tag2";
+      this.overlaps = "LONGEST_DOMINANT_RIGHT";
+
+      
+      // 'o' is a stopword for some languages.   
+      buildNames("Ronnie O'Sullivan"); //NOTE added 'o' to stopword list
+      //this tests that it gets correctly added to the FST even that 'o' will
+      //be removed.
+      assertTags("Ronnie O'Sullivan's fist match after winning the Championship", "Ronnie O'Sullivan");
+
+      //In this case 'The' will be removed. So this tests that ['B-52'], ['B','20']
+      //and ['B52'] are correctly added to the FST even that the starting node is
+      //removed.
+      buildNames("The B-52");
+      assertTags("The Boeing B-52 Stratofortress is a strategic bomber", "B-52");
+      assertTags("The Boeing B 52 Stratofortress is a strategic bomber", "B 52");
+      assertTags("The Boeing B52 Stratofortress is a strategic bomber", "B52");
+
+      
+      //here a more generic test ensuring that 'a' beeing removed does not
+      //break FST indexing and tagging
+      buildNames("Mr A.St."); // 'a' is a stopword and gets removed
+      assertTags("Hallo Mr St. how is life", "Mr St"); //so we find this even without A
+      assertTags("Dear Mr ASt. we would like to", "Mr ASt"); //concatenation at indexing time
+      assertTags("Mr A St. this is important", "Mr A St"); //create word parts
+      assertTags("Dear Mr A.St. can you find", "Mr A.St"); //the original mention
+      
+  }
+  
 }

@@ -129,11 +129,19 @@ class PhraseBuilder {
           log.error("This is caused by Terms with posInc > 0 but same "
               + "offsets already used by an other token. Please change the "
               + "configuration of your Analyzer chain.");
-          log.error("This is often caused by the SynonymFilter with configured "
-              + "multiple word mappings (e.g. 'DNS => Domain Name Service'). "
-              + "reversing those mappings ('Domain Name Service => DNS') can "
-              + "solve this issue.");
-          log.error("See also limitations section of "
+          log.error("This can be cuased e.g. by:");
+          log.error(" > the SynonymFilter with configured multiple word mappings "
+              + "(e.g. 'DNS => Domain Name Service'). In such cases it can be "
+              + "solved by using the reverse mappings ('Domain Name Service => DNS')");
+          log.error(" > Using the WordDelimiterFilter to generate tokens that are "
+              + "afterwards processed by the SynonymFilter.");
+          log.error(" > Applying the WordDelimiterFilter to tokens where the term. "
+              + "length != endOffset - startOffset. In such cases the "
+              + "WordDelimiterFilter does correct offset. This can e.g. be cuased "
+              + "by the HyphenatedWordsFilter or the EnglishPossessiveFilter. "
+              + "Generally it is recommended to use  the WordDelimiterFilter "
+              + "directly after the Tokenizer.");
+          log.error("For more information see also limitations section of "
               + "http://blog.mikemccandless.com/2012/04/"
               + "lucenes-tokenstreams-are-actually.html");
           throw new UnsupportedTokenException("Encountered Term with "
@@ -157,7 +165,7 @@ class PhraseBuilder {
    * @return the created phrase
    */
   private Phrase create(int termId, int start, int end) {
-    assert startOffset == start;
+    assert startOffset <= start;
     if(!phrases.isEmpty()){
       //do not create multiple phrases for the same termId
       int size = phrases.size();
@@ -202,6 +210,7 @@ class PhraseBuilder {
    */
   private boolean append(int termId, int start, int end){
     int addPos = -1; //stores the char offset of the phrase end where we append
+    int branchPos = -1;
     tempPhrases.clear(); //need to clear before usage
     for(int i = phrases.size() - 1; i >= 0; i--){
       Phrase phrase = phrases.get(i);
@@ -220,47 +229,75 @@ class PhraseBuilder {
         //processing (see below)
         tempPhrases.add(phrase);
       } //else uninteresting token
+      //maybe we need to call branch later on ...
+      // ... so also calculate the possible branch position
+      int startPos = phrase.getPos(phrase.length()-1);
+      if(startPos > branchPos && startPos <= start){
+          branchPos = startPos;
+      }
     }
-    if(addPos < 0 && !tempPhrases.isEmpty()){
-      //There are cases where we see posInc > 0 for tokens with the same
+    if(addPos < 0){ //not added
+      //Two possible reasons:
+      //(1) there was an alternate token where this should have been appended
+      //but it was removed by an TokenFilter (e.g. "Mr. A.St." could get split
+      // to "Mr", "A.St.", "A", "St" and the StopFilterFactory would remove "A".
+      //So we might see a Token "ST" with a posInc=1 with no Token to
+      //append it as "Mr" is already taken by "A.St.".
+      //In this case what we need to do is to find the branchPos for the 
+      //removed "A" token and append "ST" directly to that.
+      //(2) multiple Tokens with posInc > 0 for tokens with the same
       //span (start/end offset). This is typical the case if a single token
       //in the text is split up to several. Those cases can only be correctly
       //handled if all matching phrases to have the same termId as otherwise
       //we can not reconstruct the correct phrases.
-      int tempSize = tempPhrases.size();
-      int addPhraseNum = -1;
-      long tId = Long.MIN_VALUE; //keep default outside of int range
-      boolean foundMultiple = false;
-      for(int i=0; !foundMultiple && i < tempSize; i++){
-        Phrase phrase = tempPhrases.get(i);
-        //check if the last token of this phrase has the same span
-        int index = phrase.length()-1;
-        if(phrase.getPos(index) == start){ //check if start also matches
-          //but first check for multople phrases with different termIds
-          int id = phrase.getTerm(index);
-          if(tId == Long.MIN_VALUE){ //store the phraseId
-            tId = id; 
-          } else if(id != tId){
-            //encountered multiple phrases with different termIds
-            // ... stop here (error handling is done by calling method
-            foundMultiple = true;
-          } //else  multiple phrases with same termId
-          //do not append immediately (because we should not change the state
-          //in case we will find multiple phrases with different termIds
-          addPhraseNum++;
-          if(addPhraseNum != i){ //write validated back to tempPhrases
-            tempPhrases.set(addPhraseNum, phrase);
-          } //else the current element is this one
-        } //only end matches -> not the same start/end offset -> ignore
-      }
-      if(!foundMultiple && addPhraseNum >= 0){
-        addPos = end; //just to set addPos > 0
-        //now finally append to phrases with same span 
-        for(int i=0;i<=addPhraseNum;i++){
-          tempPhrases.get(i).add(termId, start, end);
+      
+      //First test for case (2)
+      boolean isSameSpan = false; //used to check for (2)
+      if(!tempPhrases.isEmpty()){
+        int tempSize = tempPhrases.size();
+        int addPhraseNum = -1;
+        long tId = Long.MIN_VALUE; //keep default outside of int range
+        boolean foundMultiple = false;
+        for(int i=0; !foundMultiple && i < tempSize; i++){
+          Phrase phrase = tempPhrases.get(i);
+          //check if the last token of this phrase has the same span
+          int index = phrase.length()-1;
+          if(phrase.getPos(index) == start){ //check if start also matches
+            isSameSpan = true; //there is a Token with the same span
+            //but first check for multople phrases with different termIds
+            int id = phrase.getTerm(index);
+            if(tId == Long.MIN_VALUE){ //store the phraseId
+              tId = id; 
+            } else if(id != tId){
+              //encountered multiple phrases with different termIds
+              // ... stop here (error handling is done by calling method
+              foundMultiple = true;
+            } //else  multiple phrases with same termId
+            //do not append immediately (because we should not change the state
+            //in case we will find multiple phrases with different termIds
+            addPhraseNum++;
+            if(addPhraseNum != i){ //write validated back to tempPhrases
+              tempPhrases.set(addPhraseNum, phrase);
+            } //else the current element is this one
+          } //only end matches -> not the same start/end offset -> ignore
         }
+        if(!foundMultiple && addPhraseNum >= 0){
+          addPos = end; //just to set addPos > 0
+          //now finally append to phrases with same span 
+          for(int i=0;i<=addPhraseNum;i++){
+            tempPhrases.get(i).add(termId, start, end);
+          }
+        }
+      } //no span with the same end offset ... can only be case (1)
+      
+      //handle case (1)
+      if(!isSameSpan){
+          //NOTE that branchPos might not be available if the removed token
+          //was at the begin of the text. So use the start offset of the
+          //parsed token if branchPos < 0
+          return branch(termId, branchPos < 0 ? start : branchPos, end);         
       }
-    } //else already added or no phrases with same end pos as the parsed term
+    }
     return addPos >= 0;
   }
   /**
@@ -275,16 +312,20 @@ class PhraseBuilder {
    * @param termId the termId to add right after the branch
    * @param start the start of the term. Also the position of the branch
    * @param end the end of the term
+   * @return <code>true</code> if the termId was successfully processed.
+   * Otherwise <code>false</code>
    */
-  public void branch(int termId, int start, int end){
+  private boolean branch(int termId, int start, int end){
     int size = phrases.size();
     tempPhrases.clear(); //need to clear before using
+    boolean create = true; //if not a branch create a new phrase
     //we need to create a branch for all phrases staring before the parsed term
     int i = 0;
     for (; i < size; i++) {
       Phrase phrase = phrases.get(i);
       if (phrase.pStart < start){
         if(phrase.hasPos(start)){
+          create = false; // this is a branch
           Phrase branch = phrase.clone();
           branch.pStart = start;
           if(branch.set(termId, start, end)){
@@ -300,25 +341,32 @@ class PhraseBuilder {
         break;
       }
     }
-    //insert branches into phrases
-    int bSize = tempPhrases.size();
-    int numSwap = size - i;
-    for(int j = 0; j < bSize; j++, i++){
-      if(i < size){
-        //swap the 'j' element of branches with the 'i' of #phrases
-        tempPhrases.set(j,phrases.set(i, tempPhrases.get(j)));
-      } else {
-        phrases.add(tempPhrases.get(j));
-      }
+    if(create){
+        return create(termId, start, end) != null;
+    } else { //insert branches into phrases
+      int bSize = tempPhrases.size();
+      if(bSize > 0){ //insert branch(es) in sorted phrases list
+        int numSwap = size - i;
+        for(int j = 0; j < bSize; j++, i++){
+          if(i < size){
+            //swap the 'j' element of branches with the 'i' of #phrases
+            tempPhrases.set(j,phrases.set(i, tempPhrases.get(j)));
+          } else {
+            phrases.add(tempPhrases.get(j));
+          }
+        }
+        for(;i < size; i++){ //add remaining elements in phrases as we need to
+          tempPhrases.add(phrases.get(i)); //append them to have a sorted list
+        }
+        //finally add Phrases swapped to branches to the end of #phrases
+        for(int j = 0; j < numSwap; j++){
+          phrases.add(tempPhrases.get(j));
+        }
+        //now #phrases is again sorted by Phrase#pStart
+      } //else no branch created (branch would have same termId as existing one)
+      return true;
     }
-    //finally add Phrases swapped to branches to the end of #phrases
-    for(int j = 0; j < numSwap; j++){
-        phrases.add(tempPhrases.get(j));
-    }
-    //now #phrases is again sorted by Phrase#pStart
-  }
-
-  
+  }  
   /**
    * Getter for the {@link IntsRef}s of the phrases build from terms parsed to
    * the {@link #addTerm(int, int, int, int, int)} method.
