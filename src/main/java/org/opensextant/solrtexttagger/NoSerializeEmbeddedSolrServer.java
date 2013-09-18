@@ -43,6 +43,7 @@ import java.util.Map;
  * An embedded SolrServer that does not round-trip serialize the response.
  *
  * @author David Smiley - dsmiley@mitre.org
+ * @deprecated Simply use {@link org.apache.solr.client.solrj.StreamingResponseCallback} instead.
  */
 public class NoSerializeEmbeddedSolrServer extends EmbeddedSolrServer {
 
