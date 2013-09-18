@@ -77,7 +77,7 @@ class TermPrefixCursor {
     } else { // subsequent advance
       //append to existing
       assert !bufNeedsToBeCopied;
-      prefixBuf.grow(1 + word.length);
+      prefixBuf.grow(prefixBuf.length + 1 + word.length);
       prefixBuf.bytes[prefixBuf.length++] = SEPARATOR_CHAR;
       prefixBuf.append(word);
       if (seekPrefix()) {
