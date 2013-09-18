@@ -24,8 +24,10 @@ package org.opensextant.solrtexttagger;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
 import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
+import org.apache.lucene.analysis.tokenattributes.PositionLengthAttribute;
 import org.apache.lucene.analysis.tokenattributes.TermToBytesRefAttribute;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.*;
@@ -42,6 +44,7 @@ import java.io.*;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -165,6 +168,7 @@ public class TaggerFstCorpus implements Serializable {
 
     totalDocIdRefs = 0;
 
+    PhraseBuilder paths = new PhraseBuilder(4); //one instance reused for all analyzed labels
     //get indexed terms for each live docs
     for (int docId = 0; docId < reader.maxDoc(); docId++) {
       if (docBits != null && !docBits.get(docId))
@@ -185,48 +189,61 @@ public class TaggerFstCorpus implements Serializable {
       }
       for (IndexableField storedField : storedFields) {
         String phraseStr = storedField.stringValue();
-  
-        //analyze stored value to array of terms (their Ids)
-        IntsRef phraseIdRef = analyze(analyzer, phraseStr);
-        if (phraseIdRef.length == 0) {
-          log.warn("Text: {} was completely eliminated by analyzer for tagging", phraseStr);
-          continue;
-        }
-        
-        if (phraseStr.length() < minLen || phraseStr.length() > maxLen){
+
+        if (phraseStr.length() < minLen || phraseStr.length() > maxLen) {
           log.warn("Text: {} was completely eliminated by analyzer for tagging; Too long or too short. LEN={}", phraseStr, phraseStr.length());
           continue;          
         }
   
-        if (partialMatches) {
-          //shingle the phrase (aka n-gram but word level, not character)
-          IntsRef shingleIdRef = null;//lazy init, and re-used too
-          assert phraseIdRef.offset == 0;
-          for (int offset = 0; offset < phraseIdRef.length; offset++) {
-            for (int length = 1; offset + length <= phraseIdRef.length && length <= MAX_PHRASE_LEN; length++) {
-              if (shingleIdRef == null) {
-                shingleIdRef = new IntsRef(phraseIdRef.ints, offset, length);
-              } else {
-                shingleIdRef.offset = offset;
-                shingleIdRef.length = length;
-              }
-              if (addIdToWorkingSetValue(workingSet, shingleIdRef, docId))
-                shingleIdRef = null;
-              totalDocIdRefs++;//since we added the docId
-            }
-          }
-        } else {
-          //add complete phrase
-          addIdToWorkingSetValue(workingSet, phraseIdRef, docId);
-          totalDocIdRefs++;//since we added the docId
+        //analyze stored value to array of terms (their Ids)
+        boolean added = false;
+        final IntsRef[] phrasesIdRefs;
+        try {
+            phrasesIdRefs = analyze(analyzer, phraseStr, paths);
+        } catch (UnsupportedTokenException e) {
+            log.warn("Problematic text read from field '{}'",storedFieldName);
+            throw e;
         }
-
+        for (IntsRef phraseIdRef : phrasesIdRefs) {
+          if (phraseIdRef.length == 0) {
+            continue;
+          }
+          if (partialMatches) {
+            //shingle the phrase (aka n-gram but word level, not character)
+            IntsRef shingleIdRef = null;//lazy init, and re-used too
+            assert phraseIdRef.offset == 0;
+            for (int offset = 0; offset < phraseIdRef.length; offset++) {
+              for (int length = 1; offset + length <= phraseIdRef.length && length <= MAX_PHRASE_LEN; length++) {
+                if (shingleIdRef == null) {
+                  shingleIdRef = new IntsRef(phraseIdRef.ints, offset, length);
+                } else {
+                  shingleIdRef.offset = offset;
+                  shingleIdRef.length = length;
+                }
+                if (addIdToWorkingSetValue(workingSet, shingleIdRef, docId)) {
+                  shingleIdRef = null;
+                }
+                added = true;
+                totalDocIdRefs++;//since we added the docId
+              }
+            }
+          } else {
+            //add complete phrase
+            addIdToWorkingSetValue(workingSet, phraseIdRef, docId);
+            added = true;
+            totalDocIdRefs++;//since we added the docId
+          }
+        }
+        if (!added) { //warn if we have not added anything for a label
+          log.warn("Text: {} was completely eliminated by analyzer for tagging", phraseStr);
+        }
         //TODO consider counting by stored-value (!= totalDocIdRefs when partialMatches==true)
-        if (totalDocIdRefs % 100000 == 0){
-          log.info("Total records reviewed COUNT="+ totalDocIdRefs);
+        if (totalDocIdRefs % 100000 == 0) {
+          log.info("Total records reviewed COUNT={}",totalDocIdRefs);
         }
       }//for each stored value
     }//for each doc
+    log.info("Reviewed all COUNT={} documents",totalDocIdRefs);
     //TODO: this write a warning if not a single stored field was found for the
     //      parsed storedFieldName - as this will most likely indicate a wrong
     //      schema configuration.
@@ -260,29 +277,58 @@ public class TaggerFstCorpus implements Serializable {
   /**
    * Analyzes the text argument, converting each term into the corresponding id
    * and concatenating into the result, a list of ids.
+   * @param analyzer the Lucene {@link Analyzer} used to process the text
+   * @param text the text to analyze
+   * @param pb the {@link PhraseBuilder} instance used to serialize the 
+   * {@link TokenStream}. If not <code>null</code> the instance will be
+   * {@link PhraseBuilder#reset() reset} otherwise a new Paths instance will be
+   * created.
+   * @return the phrases extracted from the TokenStream. Each phrase is
+   * represented by an {@link IntsRef} where single words are represented by the
+   * <code>int termId</code>.
    */
-  private IntsRef analyze(Analyzer analyzer, String text) throws IOException {
-    IntsRef result = new IntsRef(8);
+  private IntsRef[] analyze(Analyzer analyzer, String text, PhraseBuilder pb) throws IOException {
+    if(pb == null){
+        pb = new PhraseBuilder(4);
+    } else {
+        pb.reset(); //reset the paths instance before usage
+    }
     TokenStream ts = analyzer.tokenStream("", new StringReader(text));
     TermToBytesRefAttribute byteRefAtt = ts.addAttribute(TermToBytesRefAttribute.class);
     PositionIncrementAttribute posIncAtt = ts.addAttribute(PositionIncrementAttribute.class);
+    PositionLengthAttribute posLenAtt = ts.addAttribute(PositionLengthAttribute.class);
+    OffsetAttribute offsetAtt = ts.addAttribute(OffsetAttribute.class);
+    //for trace level debugging the consumed Tokens and the generated Paths
+    CharTermAttribute termAtt = null; //trace level debugging only
+    Map<Integer,String> termIdMap = null; //trace level debugging only
+    if(log.isTraceEnabled()){
+      termAtt = ts.addAttribute(CharTermAttribute.class);
+      termIdMap = new HashMap<Integer,String>();
+    }
     ts.reset();
     //result.length = 0;
     while (ts.incrementToken()) {
+      int posInc = posIncAtt.getPositionIncrement();
+      if(posInc > 1){
+        //TODO: maybe we do not need this
+        throw new IllegalArgumentException("term: " + text + " analyzed to a "
+            + "token with posinc " + posInc + " (posinc MUST BE 0 or 1)");
+      }
       byteRefAtt.fillBytesRef();
       BytesRef termBr = byteRefAtt.getBytesRef();
-
       int length = termBr.length;
-      if (length == 0) {
+      if (length == 0) { //ignore term (NOTE: that 'empty' is not set)
         OffsetAttribute offset = ts.addAttribute(OffsetAttribute.class);
         log.warn("token [{}, {}] or term: {} analyzed to a zero-length token",
             new Object[]{offset.startOffset(),offset.endOffset(),text});
-      } else {
-        if (posIncAtt.getPositionIncrement() != 1) {
-          throw new IllegalArgumentException("term: " + text + " analyzed to a token with posinc != 1");
-        }
+      } else { //process term
         int termId = lookupTermId(termBr);
-        if (termId == -1) {
+        if(log.isTraceEnabled()){
+          log.trace("Token: {}, posInc: {}, posLen: {}, offset: [{},{}], termId {}",
+            new Object[]{termAtt, posInc, posLenAtt.getPositionLength(),
+                offsetAtt.startOffset(), offsetAtt.endOffset(), termId});
+        }
+       if (termId == -1) {
           //westei: changed this to a warning as I was getting this for terms with some
           //rare special characters e.g. '∀' (for all) and a letter looking
           //similar to the greek letter tau.
@@ -291,16 +337,38 @@ public class TaggerFstCorpus implements Serializable {
           log.warn("Couldn't lookup term TEXT=" + text + " TERM="+termBr.utf8ToString());
           //throw new IllegalStateException("Couldn't lookup term TEXT=" + text + " TERM="+termBr.utf8ToString());
         } else {
-          result.grow(++result.length);
-          result.ints[result.offset + result.length - 1] = termId;
+          if(log.isTraceEnabled()){
+            termIdMap.put(termId,termAtt.toString());
+          }
+          try {
+            pb.addTerm(termId, offsetAtt.startOffset(), offsetAtt.endOffset(),
+                posInc, posLenAtt.getPositionLength());
+          } catch (UnsupportedTokenException e) {
+            //catch because here we can also print the text that failed to encode
+            log.error("Problematic Token '{}'[offset:[{},{}], posInc: {}] of Text '{}' ",
+                new Object[]{ byteRefAtt, offsetAtt.startOffset(), 
+                    offsetAtt.endOffset(), posInc, text});
+            throw e;
+          }
         }
       }
     }
     ts.end();
     ts.close();
-    return result;
+    IntsRef[] intsRefs = pb.getPhrases();
+    if(log.isTraceEnabled()){
+      int n = 1;
+      for(IntsRef ref : intsRefs){
+          StringBuilder sb = new StringBuilder();
+          for(int i = ref.offset; i<ref.length;i++){
+              sb.append(termIdMap.get(ref.ints[i])).append(" ");
+          }
+          log.trace(" {}: {}",n++,sb);
+      }
+    }
+    return intsRefs;
   }
-
+  
   /** Takes workingSet and returns sorted phrases and build ext doc id tables. */
   private IntsRef[] buildSortedPhrasesAndIdTables(HashMap<IntsRef, IntsRef> workingSet) throws IOException {
     log.debug("Building doc ID lookup tables...");

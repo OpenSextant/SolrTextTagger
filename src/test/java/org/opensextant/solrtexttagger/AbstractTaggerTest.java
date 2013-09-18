@@ -226,7 +226,15 @@ public abstract class AbstractTaggerTest extends SolrTestCaseJ4 {
       return new EqualsBuilder()
           .append(this.startOffset, that.startOffset)
           .append(this.endOffset, that.endOffset)
-          .append(this.docName, that.docName)
+          //NOTE: checking the string is no longer feasible with PosInc and
+          //      PosLen support, as a mention in the text might match a different
+          //      stored field (e.g. a synonym mentioned in the text will match
+          //      the original field if the solr.SynonymFilterFactory added the
+          //      synonym as alternate token)
+          //      This should not affect tests as start/end offset do make
+          //      unique selections assuming that this and that are using the
+          //      same text.
+          //.append(this.docName, that.docName)
           .isEquals();
     }
 

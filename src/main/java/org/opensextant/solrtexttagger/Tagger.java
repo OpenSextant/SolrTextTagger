@@ -28,6 +28,8 @@ import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
 import org.apache.lucene.analysis.tokenattributes.TermToBytesRefAttribute;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.IntsRef;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
@@ -39,10 +41,12 @@ import java.io.IOException;
  */
 public abstract class Tagger {
 
+  private final Logger log = LoggerFactory.getLogger(Tagger.class);
+    
   private final TaggerFstCorpus corpus;
 
   private final TokenStream tokenStream;
-  //private final CharTermAttribute termAtt;
+//  private final CharTermAttribute termAtt;
   private final PositionIncrementAttribute posIncAtt;
   private final TermToBytesRefAttribute byteRefAtt;
   private final OffsetAttribute offsetAtt;
@@ -54,7 +58,7 @@ public abstract class Tagger {
                 TagClusterReducer tagClusterReducer) throws IOException {
     this.corpus = corpus;
     this.tokenStream = tokenStream;
-    //termAtt = tokenStream.addAttribute(CharTermAttribute.class);
+//    termAtt = tokenStream.addAttribute(CharTermAttribute.class);
     byteRefAtt = tokenStream.addAttribute(TermToBytesRefAttribute.class);
     posIncAtt = tokenStream.addAttribute(PositionIncrementAttribute.class);
     offsetAtt = tokenStream.addAttribute(OffsetAttribute.class);
@@ -71,21 +75,29 @@ public abstract class Tagger {
 
     MyFstCursor<Long> cursor = null;
 
-    int lastStartOffset = -1;
+    int lastEndOffset = -1;
 
     while (tokenStream.incrementToken()) {
-
-      //sanity-check that start offsets don't decrease
-      if (lastStartOffset > offsetAtt.startOffset())
-        throw new IllegalStateException("startOffset must be >= the one before: "+lastStartOffset);
-      lastStartOffset = offsetAtt.startOffset();
+      if(log.isTraceEnabled()){
+        log.trace("Token: {}, posInc: {},  offset: [{},{}]",
+          new Object[]{byteRefAtt, posIncAtt.getPositionIncrement(), 
+                offsetAtt.startOffset(), offsetAtt.endOffset()});
+      }
 
       //-- If PositionIncrement > 1 then finish all tags
       int posInc = posIncAtt.getPositionIncrement();
-      if (posInc < 1) {
-        throw new IllegalStateException("term: " + byteRefAtt.getBytesRef().utf8ToString()
-            + " analyzed to a token with posinc < 1: "+posInc);
-      } else if (posInc > 1) {
+      if (posInc < 1 || offsetAtt.startOffset() < lastEndOffset) { 
+        //tokens with a position increment < 1 (alternate tokens) can be
+        //ignored as all alternates are encoded in the FST
+        //Also Tokens overlapping with already processed tokens can be ignored
+        log.trace("  ... ignore token");
+        continue;
+      } 
+      //we will process this token ...
+      lastEndOffset = offsetAtt.endOffset(); //update lastEndOffset
+
+      if (posInc > 1) {
+        log.trace("   - posInc > 1 ... mark cluster as done");
         advanceTagsAndProcessClusterIfDone(head, -1);
       }
 

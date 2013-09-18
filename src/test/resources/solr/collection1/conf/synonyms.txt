@@ -1,0 +1,28 @@
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+#-----------------------------------------------------------------------
+
+# Some synonym groups specific to this example
+GB,GiB,Gigabyte,Gigabytes
+MB,MiB,Megabyte,Megabytes
+Television, TV
+2,to
+
+# this is used to validate UnsupportedTermException
+USA, United States of America, US, United States
+
+# {term} => {multiple-term} synonym mappings like
+# DNS => Domain Name Service
+# can be encoded, but are problematic at search/tagging time
+# only the reverse mappings ({multiple-terms} => {term}) are supported
+Domain Name Service => DNS

@@ -25,6 +25,7 @@ package org.opensextant.solrtexttagger;
 import com.google.common.io.CharStreams;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.miscellaneous.WordDelimiterFilter;
 import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.index.ReaderUtil;
 import org.apache.lucene.queries.function.FunctionValues;
@@ -134,7 +135,10 @@ public class TaggerRequestHandler extends RequestHandlerBase {
     final List tags = new ArrayList(2000);
 
     try {
-      Analyzer analyzer = req.getSchema().getField(indexedField).getType().getAnalyzer();
+      //use the QueryAnalzer for tagging parsed Text. Especially when using
+      //WordDelimiterFilter one might want to use different analyzer configs
+      //for indexing (building the FST) and tagging.
+      Analyzer analyzer = req.getSchema().getField(indexedField).getType().getQueryAnalyzer();
       TokenStream tokenStream = analyzer.tokenStream("", reader);
       new Tagger(corpus, tokenStream, tagClusterReducer) {
         @SuppressWarnings("unchecked")
