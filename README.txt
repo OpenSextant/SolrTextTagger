@@ -60,6 +60,11 @@ Here is a sample field type config that should work quite well:
     </analyzer>
   </fieldType>
 
+Alternatively, try the Whitespace tokenizer with WordDelimiterFilterFactory if you
+have words combined by hyphens and you want to match both catenated and
+non-catenated variations in input. For some tips on this see:
+https://issues.apache.org/jira/browse/STANBOL-1153
+
 When defining a field that's indexed with this type, you can choose to set
 omitTermFreqAndPositions="true" omitNorms="true" since the tagger doesn't need
 them.  That said, if you intend to do general keyword search on this field, then
