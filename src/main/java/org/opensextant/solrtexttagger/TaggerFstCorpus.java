@@ -167,6 +167,7 @@ public class TaggerFstCorpus implements Serializable {
     fieldNames.add(storedFieldName);
 
     totalDocIdRefs = 0;
+    int totalValuesAnalyzed = 0;
 
     PhraseBuilder paths = new PhraseBuilder(4); //one instance reused for all analyzed labels
     //get indexed terms for each live docs
@@ -191,7 +192,7 @@ public class TaggerFstCorpus implements Serializable {
         String phraseStr = storedField.stringValue();
 
         if (phraseStr.length() < minLen || phraseStr.length() > maxLen) {
-          log.warn("Text: {} was completely eliminated by analyzer for tagging; Too long or too short. LEN={}", phraseStr, phraseStr.length());
+          log.warn("Text: {} was completely eliminated; too long or too short. LEN={}", phraseStr, phraseStr.length());
           continue;          
         }
 
@@ -237,9 +238,8 @@ public class TaggerFstCorpus implements Serializable {
         if (!added) { //warn if we have not added anything for a label
           log.warn("Text: {} was completely eliminated by analyzer for tagging", phraseStr);
         }
-        //TODO consider counting by stored-value (!= totalDocIdRefs when partialMatches==true)
-        if (totalDocIdRefs % 100000 == 0) {
-          log.info("Total records reviewed COUNT={}",totalDocIdRefs);
+        if (totalValuesAnalyzed++ % 100000 == 0) {
+          log.info("Total values analyzed COUNT={}", totalDocIdRefs);
         }
       }//for each stored value
     }//for each doc
