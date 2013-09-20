@@ -41,24 +41,22 @@ import org.slf4j.LoggerFactory;
  * Builds phrases from {@link Token}s in {@link TokenStream}. This works by
  * evaluating {@link PositionIncrementAttribute} as well as the
  * {@link OffsetAttribute}. <p>
- * Using the {@link PositionLengthAttribute} would be much easier but most of
- * current Solr {@link Analyzer}s do not properly support it.
- * <p>
+ * Using the {@link PositionLengthAttribute} would be much easier but some
+ * Lucene {@link Analyzer}s don't yet properly support it as of Lucene 4.5.
  *
  * <h3>Performance considerations:</h3>
- *
- * {@link TokenStream}s that do not define any alternate tokens (tokens with
- * <code>posInc == 0</code>) will be processed by calling
- * {@link #create(int, int, int)} once for the first tokens. For all
+ * 
+ * {@link TokenStream}s that do <i>not</i> define any alternate tokens (i.e.
+ * no token has <code>posInc == 0</code>) will be processed by calling
+ * {@link #add(int, int, int)} once for the first token. For all
  * remaining tokens {@link #append(int, int, int)} will be called. This code
- * path does execute fast. Processing such TokenStremas will only create a
+ * path does execute fast. Processing such TokenStreams will only create a
  * single instance of {@link Phrase}. <p>
- * For {@link TokenStream} that do define alternate tokens more processing is
- * needed. For each branch (defined by the start offset of a token with a
- * position increment of zero) start positions of existing {@link Phrase}s need
- * to checked. All existing {@link Phrase}s that use this position need to be
- * copied and on the copy the current term need to be set.
- * <p>
+ * For {@link TokenStream}s that do define alternate tokens, more processing
+ * is needed. For each branch (defined by the start offset of a token with a
+ * position increment of zero) start positions of existing {@link Phrase}s need 
+ * to be checked. All existing {@link Phrase}s that use this position need to
+ * be copied and on the copy the current term need to be set.
  *
  * <h3>Limitations</h3>
  *
@@ -74,17 +72,17 @@ import org.slf4j.LoggerFactory;
  * {@link UnsupportedTokenException} and ERROR level logging providing similar
  * information will be printed to the log.<p>
  * For more information on this issue please look at the <i>Limitation<i>
- * section of the Blog
- * <a herf="http://blog.mikemccandless.com/2012/04/lucenes-tokenstreams-are-actually.html">
- * Lucene's TokenStreams are actually graphs!</a> by  Michael McCandless.
- * <p>
+ * section of the Blog 
+ * <a href="http://blog.mikemccandless.com/2012/04/lucenes-tokenstreams-are-actually.html">
+ * Lucene's TokenStreams are actually graphs!</a> by Michael McCandless.
+ *
  * <hr>
  * <b>TODO:</b> This could also directly take the {@link TokenStream} as input
  * and also implement the logic of iterating over the tokens. Currently this is
  * still done in the {@link TaggerFstCorpus}#analyze(..) method.
  * <hr>
- * @author Rupert Westenthaler
  *
+ * @author Rupert Westenthaler
  */
 class PhraseBuilder {
 
@@ -99,28 +97,17 @@ class PhraseBuilder {
    * Used to memorize the start offset of the first token(s) reported by the
    * TokenStream
    */
-  int startOffset = -1;
+  private int startOffset = -1;
 
   /**
    * Internally used by {@link #branch(int, int, int)} and
-   * {@link #append(int, int, int)} to temporarily store {@link Phrase} <p>
-   * Those methods to use this field to avoid creating new {@link List}
+   * {@link #append(int, int, int)} to temporarily store {@link Phrase}. <p>
+   * Those methods use this field to avoid creating new {@link List}
    * instances on each call.<p>
    * Users of this field are expected to call {@link List#clear()} before
    * usage.
    */
   private List<Phrase> tempPhrases;
-
-  /**
-   * Creates a new PhraseBuilder instance. Note that this instance should be
-   * reused by calling {@link #reset()}.
-   *
-   * @see #reset()
-   */
-  public PhraseBuilder() {
-    phrases = new ArrayList<Phrase>();
-    tempPhrases = new ArrayList<Phrase>();
-  }
 
   /**
    * Creates a new PhraseBuilder instance with the initial capacity.
@@ -145,10 +132,11 @@ class PhraseBuilder {
    */
   public void addTerm(int termId, int start, int end, int posInc, int posLen) {
     if (posInc > 0) { //new token position
+
       if (phrases.isEmpty()) { // the first token
         startOffset = start; //set the start offset
         create(termId, start, end); //create a new Phrase
-      } else { //tokens with posInc > 0 need to be append to existing phrases
+      } else { //tokens with posInc > 0 need to be appended to existing phrases
         if (!append(termId, start, end)) {
           //this means that we do have multiple tokens for the same span (start
           //and end offset). 
@@ -177,14 +165,16 @@ class PhraseBuilder {
               + "level loggings for details and help!");
         } //else successfully appended
       }
+
     } else { //tokens with posInc == 0 are alternatives to existing tokens
+
       if (start == startOffset) { //if alternative starts at the beginning
-        create(termId, start, end); //simple create a new phrase
+        create(termId, start, end); //simply create a new phrase
       } else { //we need to create branches for existing phrases
         branch(termId, start, end);
       }
-    }
 
+    }
   }
 
   /**
@@ -230,8 +220,7 @@ class PhraseBuilder {
    * correctly handled. However using analyzers generating such token streams
    * are still problematic as they may result in unintended behaviour during
    * search. See the 'Domain Name Service => DNS' example in the limitation
-   * section of <a href="http://blog.mikemccandless.com/2012/04/lucenes-tokenstreams-are-actually
-   * .html">
+   * section of <a href="http://blog.mikemccandless.com/2012/04/lucenes-tokenstreams-are-actually.html">
    * Lucene's TokenStreams are actually graphs!</a> by Michael McCandless for
    * details why this is the case.<br>
    * </ul>
@@ -252,9 +241,9 @@ class PhraseBuilder {
         phrase.add(termId, start, end);
         addPos = phraseEnd;
       } else if (addPos >= 0) { //to avoid unnecessary iterations
-        //As tokens can be only appended to phrases ending a a single position.
-        //While multiple phrases might use this position we can stop iterating
-        //as soon as phrases do no longer have the same pEnd value after the
+        //Tokens can only be appended to phrases ending in a single position.
+        //While multiple phrases might use this position, we can stop iterating
+        //as soon as phrases no longer have the same pEnd value after the
         //parsed token was appended (addPos >= 0)
         break;
       } else if (phraseEnd == end) {
@@ -272,16 +261,16 @@ class PhraseBuilder {
     if (addPos < 0) { //not added
       //Two possible reasons:
       //(1) there was an alternate token where this should have been appended
-      //but it was removed by an TokenFilter (e.g. "Mr. A.St." could get split
+      //but it was removed by a TokenFilter (e.g. "Mr. A.St." could get split
       // to "Mr", "A.St.", "A", "St" and the StopFilterFactory would remove "A".
-      //So we might see a Token "ST" with a posInc=1 with no Token to
-      //append it as "Mr" is already taken by "A.St.".
+      //So we might see a token "ST" with a posInc=1 with no token to
+      //append to as "Mr" is already taken by "A.St.".
       //In this case what we need to do is to find the branchPos for the 
       //removed "A" token and append "ST" directly to that.
-      //(2) multiple Tokens with posInc > 0 for tokens with the same
-      //span (start/end offset). This is typical the case if a single token
+      //(2) multiple tokens with posInc > 0 for tokens with the same
+      //span (start/end offset). This is typically the case if a single token
       //in the text is split up to several. Those cases can only be correctly
-      //handled if all matching phrases to have the same termId as otherwise
+      //handled if all matching phrases have the same termId as otherwise
       //we can not reconstruct the correct phrases.
 
       //First test for case (2)
@@ -296,8 +285,8 @@ class PhraseBuilder {
           //check if the last token of this phrase has the same span
           int index = phrase.length() - 1;
           if (phrase.getPos(index) == start) { //check if start also matches
-            isSameSpan = true; //there is a Token with the same span
-            //but first check for multople phrases with different termIds
+            isSameSpan = true; //there is a token with the same span
+            //but first check for multiple phrases with different termIds
             int id = phrase.getTerm(index);
             if (tId == Long.MIN_VALUE) { //store the phraseId
               tId = id;
@@ -326,7 +315,7 @@ class PhraseBuilder {
       //handle case (1)
       if (!isSameSpan) {
         //NOTE that branchPos might not be available if the removed token
-        //was at the begin of the text. So use the start offset of the
+        //was at the beginning of the text. So use the start offset of the
         //parsed token if branchPos < 0
         return branch(termId, branchPos < 0 ? start : branchPos, end);
       }
@@ -354,7 +343,7 @@ class PhraseBuilder {
     int size = phrases.size();
     tempPhrases.clear(); //need to clear before using
     boolean create = true; //if not a branch create a new phrase
-    //we need to create a branch for all phrases staring before the parsed term
+    //we need to create a branch for all phrases starting before the parsed term
     int i = 0;
     for (; i < size; i++) {
       Phrase phrase = phrases.get(i);
@@ -436,18 +425,20 @@ class PhraseBuilder {
    *
    * @author Rupert Westenthaler
    */
-  class Phrase implements Cloneable {
+  static class Phrase implements Cloneable {
 
     /**
      * The path
      */
     private final IntsRef path;
+
     /**
      * stores the start offsets of terms contained in this phrase. NOTE that
      * this array only contains as many valid values as the number of
      * termIds in {@link #path}.
      */
     private int[] pos;
+
     /**
      * the current end offset of the phrase.
      */
@@ -493,7 +484,7 @@ class PhraseBuilder {
     void add(int termId, int start, int end) {
 //      assert start >= pEnd; //the added term MUST be at the end of the Phrase
       path.grow(++path.length); //add an element to the path
-      path.ints[path.offset + path.length - 1] = termId;
+      path.ints[path.length - 1] = termId;
       if (pos.length < path.length) { //increase pos array size
         pos = ArrayUtil.grow(pos);
       }
@@ -515,9 +506,9 @@ class PhraseBuilder {
       //backward lookup as we expect to replace the last element most of the time
       for (int idx = path.length - 1; idx >= 0; idx--) {
         if (pos[idx] <= start) { //found the index
-          int oldTermId = path.ints[path.offset + idx];
+          int oldTermId = path.ints[idx];
           if (oldTermId != termId) {
-            path.ints[path.offset + idx] = termId;
+            path.ints[idx] = termId;
             path.length = idx + 1;
             pEnd = end; //update the end
             return true;
@@ -574,7 +565,7 @@ class PhraseBuilder {
      * @return the termId
      */
     int getTerm(int index) {
-      return path.ints[path.offset + index];
+      return path.ints[index];
     }
 
     /**
@@ -596,17 +587,17 @@ class PhraseBuilder {
     }
 
     /**
-     * Clones the path and adds the clone with {@link PhraseBuilder#phrases}
+     * A "deep" clone AKA copy. Uses same array size over-allocation.
      */
     @Override
     public Phrase clone() {
-      //clone the array as IntsRef#clone() does not!
-      int[] refClone = new int[path.ints.length - path.offset]; //use same capacity
-      System.arraycopy(path.ints, path.offset, refClone, 0, path.length); //copy data
+      //Could use IntsRef.deepClone() but lets use same over-capacity
+      int[] pathClone = new int[path.ints.length]; //use same capacity
+      System.arraycopy(path.ints, 0, pathClone, 0, path.length); //copy data
       //also clone the positions of the path
-      int[] posClone = new int[pos.length];
+      int[] posClone = new int[pos.length];//use same capacity
       System.arraycopy(pos, 0, posClone, 0, path.length); //only path.length items
-      return new Phrase(new IntsRef(refClone, 0, path.length), posClone, pEnd);
+      return new Phrase(new IntsRef(pathClone, 0, path.length), posClone, pEnd);
     }
   }
 }
