@@ -40,13 +40,17 @@ A Solr schema.xml needs:
 
 There are some nuances to properly configuring the analyzer. The *query* time analyzer should
 output tokens with posInc >= 1. So a StopwordFilter is ok but a SynonymFilter should only by used
-to normalize terms without expansion (or simply don't use synonyms at query time).  There are
+to normalize terms without expansion (or simply don't use synonyms at query time). There are
 similar considerations for WordDelimiterFilter -- don't use the catenate options.  The *index*
 analyzer has more freedom; this is where you can expand synonyms (if you choose),
 etc.  That being said, if posInc is ever 0 then there are some edge cases that result in errors,
 and the root cause are Lucene's analyzers.
 For more info on this see the Limitations section of this blog post:
  http://blog.mikemccandless.com/2012/04/lucenes-tokenstreams-are-actually.html
+And as indicated in that blog post, any multi-term synonyms should be substituted by single-word
+synonyms but not the reverse. So synonyms.txt could have "Domain Name System => DNS" but not the
+reverse order. See the test configuration for a complex text analysis configuration that
+exercises these capabilities.
 
 Here is a sample simple field type config that should work quite well:
 

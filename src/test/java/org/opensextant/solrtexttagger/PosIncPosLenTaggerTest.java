@@ -25,7 +25,6 @@ package org.opensextant.solrtexttagger;
 import junit.framework.Assert;
 
 import org.apache.lucene.analysis.Tokenizer;
-import org.apache.lucene.analysis.core.WhitespaceTokenizer;
 import org.apache.lucene.analysis.miscellaneous.WordDelimiterFilter;
 import org.apache.solr.schema.FieldType;
 import org.junit.BeforeClass;
@@ -55,19 +54,20 @@ public class PosIncPosLenTaggerTest extends AbstractTaggerTest {
     //This would fail, as the WordDelimiterFilter would split 'GiB' to 'gi', 'b'
     // but this is not indexed in the FST
     //assertTags("Where to buy a 16 GiB Memory Stick", "16 GiB Memory Stick");
-    
+
     //The upper case & lower case version do work however
     assertTags("Where to buy a 16 GIB Memory Stick", "16 GIB Memory Stick");
     assertTags("Where to buy a 16 gib memory stick", "16 gib memory stick");
-    
-    
+
+
     //also test alternatives at the beginning of the name
     buildNames("Television");
-    assertTags("Season 24 of the Simpsons will be in television bext month", "television");
+    assertTags("Season 24 of the Simpsons will be in television next month", "television");
     assertTags("An Internet TV service providing on demand access.", "TV");
-    
+
     buildNames("Domain Name Service");
     assertTags("The DNS server is down.", "DNS");
+    assertTags("The Domain Name Service server is down.", "Domain Name Service");
     
     buildNames("DNS");
     assertTags("The DNS server is down.", "DNS");
@@ -188,7 +188,7 @@ public class PosIncPosLenTaggerTest extends AbstractTaggerTest {
       
       // 'o' is a stopword for some languages.   
       buildNames("Ronnie O'Sullivan"); //NOTE added 'o' to stopword list
-      //this tests that it gets correctly added to the FST even that 'o' will
+      //this tests that it gets correctly added to the FST even though 'o' will
       //be removed.
       assertTags("Ronnie O'Sullivan's fist match after winning the Championship", "Ronnie O'Sullivan");
 
