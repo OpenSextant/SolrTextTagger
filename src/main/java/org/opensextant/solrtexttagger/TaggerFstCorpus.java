@@ -57,7 +57,7 @@ public class TaggerFstCorpus implements Serializable {
 
   private static final Logger log = LoggerFactory.getLogger(TaggerFstCorpus.class);
 
-  private static final PositiveIntOutputs fstOutputs = PositiveIntOutputs.getSingleton(true);
+  private static final PositiveIntOutputs fstOutputs = PositiveIntOutputs.getSingleton();
   private static final int MAX_PHRASE_LEN = 10;
 
   // characters in value:

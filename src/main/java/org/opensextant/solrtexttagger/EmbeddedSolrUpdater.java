@@ -133,10 +133,10 @@ public class EmbeddedSolrUpdater {
   private static EmbeddedSolrServer createSolrServer() {
     //This init sequence is a little hokey
     String solrHome = SolrResourceLoader.locateSolrHome();
-    File cfgFile = new File(solrHome, "solr.xml");
+    //File cfgFile = new File(solrHome, "solr.xml");
     CoreContainer coreContainer;
     try {
-      coreContainer = new CoreContainer(solrHome, cfgFile);
+      coreContainer = new CoreContainer(solrHome);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
