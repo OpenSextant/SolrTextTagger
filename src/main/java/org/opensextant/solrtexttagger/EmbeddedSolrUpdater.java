@@ -137,6 +137,8 @@ public class EmbeddedSolrUpdater {
     CoreContainer coreContainer;
     try {
       coreContainer = new CoreContainer(solrHome);
+      //load is no longer implicitly called by the constructor
+      coreContainer.load();
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
