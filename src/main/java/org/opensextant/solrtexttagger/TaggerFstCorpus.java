@@ -345,7 +345,7 @@ public class TaggerFstCorpus implements Serializable {
     //result.length = 0;
     while (ts.incrementToken()) {
       int posInc = posIncAtt.getPositionIncrement();
-// Deactivated as part of Solr 4.4 upgrade (see Issue-14 for details)
+//Deactivated as part of Solr 4.4 upgrade (see Issue-14 for details)
 //      if (posInc > 1) {
 //        //TODO: maybe we do not need this
 //        throw new IllegalArgumentException("term: " + text + " analyzed to a "

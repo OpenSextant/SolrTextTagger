@@ -42,11 +42,11 @@ import java.io.IOException;
 public abstract class Tagger {
 
   private final Logger log = LoggerFactory.getLogger(Tagger.class);
-    
+
   private final TaggerFstCorpus corpus;
 
   private final TokenStream tokenStream;
-//  private final CharTermAttribute termAtt;
+  //  private final CharTermAttribute termAtt;
   private final PositionIncrementAttribute posIncAtt;
   private final TermToBytesRefAttribute byteRefAtt;
   private final OffsetAttribute offsetAtt;
@@ -78,24 +78,24 @@ public abstract class Tagger {
     int lastEndOffset = -1;
 
     while (tokenStream.incrementToken()) {
-      if(log.isTraceEnabled()){
+      if (log.isTraceEnabled()) {
         log.trace("Token: {}, posInc: {},  offset: [{},{}]",
-          new Object[]{byteRefAtt, posIncAtt.getPositionIncrement(), 
+            new Object[]{byteRefAtt, posIncAtt.getPositionIncrement(),
                 offsetAtt.startOffset(), offsetAtt.endOffset()});
       }
 
       //-- If PositionIncrement > 1 then finish all tags
       int posInc = posIncAtt.getPositionIncrement();
-      if (posInc < 1 || offsetAtt.startOffset() < lastEndOffset) { 
+      if (posInc < 1 || offsetAtt.startOffset() < lastEndOffset) {
         //tokens with a position increment < 1 (alternate tokens) can be
         //ignored as all alternates are encoded in the FST
         //Also Tokens overlapping with already processed tokens can be ignored
         log.trace("  ... ignore token");
         continue;
-      } 
+      }
       //we will process this token ...
       lastEndOffset = offsetAtt.endOffset(); //update lastEndOffset
-// Deactivated as part of Solr 4.4 upgrade (see Issue-14 for details)
+//Deactivated as part of Solr 4.4 upgrade (see Issue-14 for details)
 //      if (posInc > 1) {
 //        log.trace("   - posInc > 1 ... mark cluster as done");
 //        advanceTagsAndProcessClusterIfDone(head, -1);
@@ -105,13 +105,13 @@ public abstract class Tagger {
       //NOTE: we need to lookup tokens if
       // * the LookupAtt is true OR
       // * there are still advancing tags (to find the longest possible match)
-      if(lookupAtt.isTaggable() || head[0] != null){
+      if (lookupAtt.isTaggable() || head[0] != null) {
         //-- Lookup the term id from the next token
         termId = getTermIdFromByteRef();
       } else { //no current cluster AND lookup == false ... 
         termId = -1; //skip this token
       }
-      
+
       //-- Process tag
       advanceTagsAndProcessClusterIfDone(head, termId);
 
@@ -119,11 +119,13 @@ public abstract class Tagger {
       if (lookupAtt.isTaggable() && termId >= 0) {
 
         //determine if the FST has the term as a start state
-        // TODO use a cached bitset of starting termIds, which is faster than a failed FST advance which is common
+        // TODO use a cached bitset of starting termIds, which is faster than a failed FST
+        // advance which is common
         if (cursor == null)
           cursor = new MyFstCursor<Long>(corpus.getPhrases());
         if (cursor.nextByLabel(termId)) {
-          TagLL newTail = new TagLL(head, cursor, offsetAtt.startOffset(), offsetAtt.endOffset(), null);
+          TagLL newTail = new TagLL(head, cursor, offsetAtt.startOffset(), offsetAtt.endOffset(),
+              null);
           cursor = null;//because we can't share it with the next iteration
           //and add it to the end
           if (head[0] == null) {
@@ -171,22 +173,28 @@ public abstract class Tagger {
     BytesRef bytesRef = byteRefAtt.getBytesRef();
     int length = bytesRef.length;
     if (length == 0) {
-      throw new IllegalArgumentException("term: " + bytesRef.utf8ToString() + " analyzed to a zero-length token");
+      throw new IllegalArgumentException("term: " + bytesRef.utf8ToString() + " analyzed to a " +
+          "zero-length token");
     }
     return corpus.lookupTermId(bytesRef);//-1 if not found
   }
 
   /**
-   * Invoked by {@link #process()} for each tag found.  endOffset is always >= the endOffset given in the previous
+   * Invoked by {@link #process()} for each tag found.  endOffset is always >= the endOffset
+   * given in the previous
    * call.
+   *
    * @param startOffset The character offset of the original stream where the tag starts.
-   * @param endOffset One more than the character offset of the original stream where the tag ends.
-   * @param docIdsKey A reference to the matching docIds that can be resolved via {@link #lookupDocIds(long)}.
+   * @param endOffset   One more than the character offset of the original stream where the tag
+   *                    ends.
+   * @param docIdsKey   A reference to the matching docIds that can be resolved via {@link
+   * #lookupDocIds(long)}.
    */
   protected abstract void tagCallback(int startOffset, int endOffset, long docIdsKey);
 
   /**
    * Returns a sorted array of integer docIds given the corresponding key.
+   *
    * @param docIdsKey The lookup key.
    * @return Not null
    */
