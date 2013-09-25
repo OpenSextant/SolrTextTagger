@@ -95,11 +95,11 @@ public abstract class Tagger {
       } 
       //we will process this token ...
       lastEndOffset = offsetAtt.endOffset(); //update lastEndOffset
-
-      if (posInc > 1) {
-        log.trace("   - posInc > 1 ... mark cluster as done");
-        advanceTagsAndProcessClusterIfDone(head, -1);
-      }
+// Deactivated as part of Solr 4.4 upgrade (see Issue-14 for details)
+//      if (posInc > 1) {
+//        log.trace("   - posInc > 1 ... mark cluster as done");
+//        advanceTagsAndProcessClusterIfDone(head, -1);
+//      }
 
       final int termId;
       //NOTE: we need to lookup tokens if
