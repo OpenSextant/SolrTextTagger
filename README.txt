@@ -15,6 +15,7 @@ see these resources:
 
 Contributors:
   * David Smiley (MITRE)
+  * Rupert Westenthaler
 
 ======== Build Instructions
 
