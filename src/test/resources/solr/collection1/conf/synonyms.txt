@@ -12,13 +12,18 @@
 
 #-----------------------------------------------------------------------
 
+# For synonym rules WITHOUT '=>' (without an explicit mapping)...
+#  When expand=true all in the list expand to each other, but
+#  when expand=false then the first term (GB) is the target replacement for
+#  the remainder (GiB, ...).
+
 # Some synonym groups specific to this example
 GB,GiB,Gigabyte,Gigabytes
 MB,MiB,Megabyte,Megabytes
 Television, TV
 2,to
 
-# this is used to validate UnsupportedTermException
+# this is used to validate UnsupportedTokenException
 USA, United States of America, US, United States
 
 # {term} => {multiple-term} synonym mappings like

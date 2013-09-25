@@ -203,6 +203,7 @@ public class TaggerFstCorpus implements Serializable {
     fieldNames.add(storedFieldName);
 
     totalDocIdRefs = 0;
+    int totalValuesAnalyzed = 0;
 
     PhraseBuilder paths = new PhraseBuilder(4); //one instance reused for all analyzed labels
     //get indexed terms for each live docs
@@ -227,18 +228,18 @@ public class TaggerFstCorpus implements Serializable {
         String phraseStr = storedField.stringValue();
 
         if (phraseStr.length() < minLen || phraseStr.length() > maxLen) {
-          log.warn("Text: {} was completely eliminated by analyzer for tagging; Too long or too short. LEN={}", phraseStr, phraseStr.length());
+          log.warn("Text: {} was completely eliminated; too long or too short. LEN={}", phraseStr, phraseStr.length());
           continue;          
         }
-  
+
         //analyze stored value to array of terms (their Ids)
         boolean added = false;
         final IntsRef[] phrasesIdRefs;
         try {
-            phrasesIdRefs = analyze(analyzer, phraseStr, paths);
+          phrasesIdRefs = analyze(analyzer, phraseStr, paths);
         } catch (UnsupportedTokenException e) {
-            log.warn("Problematic text read from field '{}'",storedFieldName);
-            throw e;
+          log.warn("Problematic text read from field '{}'",storedFieldName);
+          throw e;
         }
         for (IntsRef phraseIdRef : phrasesIdRefs) {
           if (phraseIdRef.length == 0) {
@@ -273,9 +274,8 @@ public class TaggerFstCorpus implements Serializable {
         if (!added) { //warn if we have not added anything for a label
           log.warn("Text: {} was completely eliminated by analyzer for tagging", phraseStr);
         }
-        //TODO consider counting by stored-value (!= totalDocIdRefs when partialMatches==true)
-        if (totalDocIdRefs % 100000 == 0) {
-          log.info("Total records reviewed COUNT={}",totalDocIdRefs);
+        if (totalValuesAnalyzed++ % 100000 == 0) {
+          log.info("Total values analyzed COUNT={}", totalDocIdRefs);
         }
       }//for each stored value
     }//for each doc
@@ -324,10 +324,10 @@ public class TaggerFstCorpus implements Serializable {
    * <code>int termId</code>.
    */
   private IntsRef[] analyze(Analyzer analyzer, String text, PhraseBuilder pb) throws IOException {
-    if(pb == null){
-        pb = new PhraseBuilder(4);
+    if (pb == null) {
+      pb = new PhraseBuilder(4);
     } else {
-        pb.reset(); //reset the paths instance before usage
+      pb.reset(); //reset the paths instance before usage
     }
     TokenStream ts = analyzer.tokenStream("", new StringReader(text));
     TermToBytesRefAttribute byteRefAtt = ts.addAttribute(TermToBytesRefAttribute.class);
@@ -336,17 +336,17 @@ public class TaggerFstCorpus implements Serializable {
     OffsetAttribute offsetAtt = ts.addAttribute(OffsetAttribute.class);
     //for trace level debugging the consumed Tokens and the generated Paths
     CharTermAttribute termAtt = null; //trace level debugging only
-    Map<Integer,String> termIdMap = null; //trace level debugging only
-    if(log.isTraceEnabled()){
+    Map<Integer, String> termIdMap = null; //trace level debugging only
+    if (log.isTraceEnabled()) {
       termAtt = ts.addAttribute(CharTermAttribute.class);
-      termIdMap = new HashMap<Integer,String>();
+      termIdMap = new HashMap<Integer, String>();
     }
     ts.reset();
     //result.length = 0;
     while (ts.incrementToken()) {
       int posInc = posIncAtt.getPositionIncrement();
 // Deactivated as part of Solr 4.4 upgrade (see Issue-14 for details)
-//      if(posInc > 1){
+//      if (posInc > 1) {
 //        //TODO: maybe we do not need this
 //        throw new IllegalArgumentException("term: " + text + " analyzed to a "
 //            + "token with posinc " + posInc + " (posinc MUST BE 0 or 1)");
@@ -357,25 +357,26 @@ public class TaggerFstCorpus implements Serializable {
       if (length == 0) { //ignore term (NOTE: that 'empty' is not set)
         OffsetAttribute offset = ts.addAttribute(OffsetAttribute.class);
         log.warn("token [{}, {}] or term: {} analyzed to a zero-length token",
-            new Object[]{offset.startOffset(),offset.endOffset(),text});
+            new Object[]{offset.startOffset(), offset.endOffset(), text});
       } else { //process term
         int termId = lookupTermId(termBr);
-        if(log.isTraceEnabled()){
+        if (log.isTraceEnabled()) {
           log.trace("Token: {}, posInc: {}, posLen: {}, offset: [{},{}], termId {}",
-            new Object[]{termAtt, posInc, posLenAtt.getPositionLength(),
-                offsetAtt.startOffset(), offsetAtt.endOffset(), termId});
+              new Object[]{termAtt, posInc, posLenAtt.getPositionLength(),
+                  offsetAtt.startOffset(), offsetAtt.endOffset(), termId});
         }
-       if (termId == -1) {
+        if (termId == -1) {
           //westei: changed this to a warning as I was getting this for terms with some
           //rare special characters e.g. '∀' (for all) and a letter looking
           //similar to the greek letter tau.
           //in any way it looked better to ignore such terms rather than failing
           //with an exception and having no FST at all.
-          log.warn("Couldn't lookup term TEXT=" + text + " TERM="+termBr.utf8ToString());
-          //throw new IllegalStateException("Couldn't lookup term TEXT=" + text + " TERM="+termBr.utf8ToString());
+          log.warn("Couldn't lookup term TEXT=" + text + " TERM=" + termBr.utf8ToString());
+          //throw new IllegalStateException("Couldn't lookup term TEXT=" + text + " TERM="+termBr
+          // .utf8ToString());
         } else {
-          if(log.isTraceEnabled()){
-            termIdMap.put(termId,termAtt.toString());
+          if (log.isTraceEnabled()) {
+            termIdMap.put(termId, termAtt.toString());
           }
           try {
             pb.addTerm(termId, offsetAtt.startOffset(), offsetAtt.endOffset(),
@@ -383,7 +384,7 @@ public class TaggerFstCorpus implements Serializable {
           } catch (UnsupportedTokenException e) {
             //catch because here we can also print the text that failed to encode
             log.error("Problematic Token '{}'[offset:[{},{}], posInc: {}] of Text '{}' ",
-                new Object[]{ byteRefAtt, offsetAtt.startOffset(), 
+                new Object[]{byteRefAtt, offsetAtt.startOffset(),
                     offsetAtt.endOffset(), posInc, text});
             throw e;
           }
@@ -393,19 +394,19 @@ public class TaggerFstCorpus implements Serializable {
     ts.end();
     ts.close();
     IntsRef[] intsRefs = pb.getPhrases();
-    if(log.isTraceEnabled()){
+    if (log.isTraceEnabled()) {
       int n = 1;
-      for(IntsRef ref : intsRefs){
-          StringBuilder sb = new StringBuilder();
-          for(int i = ref.offset; i<ref.length;i++){
-              sb.append(termIdMap.get(ref.ints[i])).append(" ");
-          }
-          log.trace(" {}: {}",n++,sb);
+      for (IntsRef ref : intsRefs) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = ref.offset; i < ref.length; i++) {
+          sb.append(termIdMap.get(ref.ints[i])).append(" ");
+        }
+        log.trace(" {}: {}", n++, sb);
       }
     }
     return intsRefs;
   }
-  
+
   /** Takes workingSet and returns sorted phrases and build ext doc id tables. */
   private IntsRef[] buildSortedPhrasesAndIdTables(HashMap<IntsRef, IntsRef> workingSet) throws IOException {
     log.debug("Building doc ID lookup tables...");

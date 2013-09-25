@@ -25,7 +25,6 @@ package org.opensextant.solrtexttagger;
 import junit.framework.Assert;
 
 import org.apache.lucene.analysis.Tokenizer;
-import org.apache.lucene.analysis.core.WhitespaceTokenizer;
 import org.apache.lucene.analysis.miscellaneous.WordDelimiterFilter;
 import org.apache.solr.schema.FieldType;
 import org.junit.BeforeClass;
@@ -55,19 +54,20 @@ public class PosIncPosLenTaggerTest extends AbstractTaggerTest {
     //This would fail, as the WordDelimiterFilter would split 'GiB' to 'gi', 'b'
     // but this is not indexed in the FST
     //assertTags("Where to buy a 16 GiB Memory Stick", "16 GiB Memory Stick");
-    
+
     //The upper case & lower case version do work however
     assertTags("Where to buy a 16 GIB Memory Stick", "16 GIB Memory Stick");
     assertTags("Where to buy a 16 gib memory stick", "16 gib memory stick");
-    
-    
-    //also test alternatives at the begin of the name
+
+
+    //also test alternatives at the beginning of the name
     buildNames("Television");
-    assertTags("Season 24 of the Simpsons will be in television bext month", "television");
+    assertTags("Season 24 of the Simpsons will be in television next month", "television");
     assertTags("An Internet TV service providing on demand access.", "TV");
-    
+
     buildNames("Domain Name Service");
     assertTags("The DNS server is down.", "DNS");
+    assertTags("The Domain Name Service server is down.", "Domain Name Service");
     
     buildNames("DNS");
     assertTags("The DNS server is down.", "DNS");
@@ -99,8 +99,10 @@ public class PosIncPosLenTaggerTest extends AbstractTaggerTest {
   }
 
   /**
-   * Multi token synonyms can not be supported as explained in the limitation
+   * Multi-token synonyms cannot be supported as explained in the limitation
    * section of <a href="http://blog.mikemccandless.com/2012/04/lucenes-tokenstreams-are-actually.html" >
+   *   link</a>
+   *
    * @throws Exception
    */
   @Test
@@ -121,8 +123,8 @@ public class PosIncPosLenTaggerTest extends AbstractTaggerTest {
    * Stop words are just removed from the token stream. So this is not expected
    * to cause any troubles.<p>
    * However future versions of the <code>solr.StopFilterFactory</code> might
-   * use a PosInc of <code>2</code> what could cause troubles. 
-   * So it is good to have this check in place
+   * use a PosInc of <code>2</code> which could cause troubles
+   * so it is good to have this check in place.
    * @throws Exception
    */
   @Test
@@ -160,7 +162,7 @@ public class PosIncPosLenTaggerTest extends AbstractTaggerTest {
   }
 
   @Test
-  public void testSynonymsAndDelimiterCombinded() throws Exception {
+  public void testSynonymsAndDelimiterCombined() throws Exception {
     this.requestHandler = "/tag2";
     this.overlaps = "LONGEST_DOMINANT_RIGHT";
 
@@ -186,7 +188,7 @@ public class PosIncPosLenTaggerTest extends AbstractTaggerTest {
       
       // 'o' is a stopword for some languages.   
       buildNames("Ronnie O'Sullivan"); //NOTE added 'o' to stopword list
-      //this tests that it gets correctly added to the FST even that 'o' will
+      //this tests that it gets correctly added to the FST even though 'o' will
       //be removed.
       assertTags("Ronnie O'Sullivan's fist match after winning the Championship", "Ronnie O'Sullivan");
 
@@ -199,7 +201,7 @@ public class PosIncPosLenTaggerTest extends AbstractTaggerTest {
       assertTags("The Boeing B52 Stratofortress is a strategic bomber", "B52");
 
       
-      //here a more generic test ensuring that 'a' beeing removed does not
+      //here a more generic test ensuring that 'a' being removed does not
       //break FST indexing and tagging
       buildNames("Mr A.St."); // 'a' is a stopword and gets removed
       assertTags("Hallo Mr St. how is life", "Mr St"); //so we find this even without A
