@@ -34,6 +34,9 @@ import org.apache.solr.core.CoreContainer;
 import org.apache.solr.core.SolrResourceLoader;
 
 import java.io.*;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.URLDecoder;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -133,12 +136,44 @@ public class EmbeddedSolrUpdater {
   private static EmbeddedSolrServer createSolrServer() {
     //This init sequence is a little hokey
     String solrHome = SolrResourceLoader.locateSolrHome();
-    File cfgFile = new File(solrHome, "solr.xml");
+    //There was an API change from Solr 4.3 to Solr 4.4
+    //The CoreContainer constructor with 'String, File' was removed in favour
+    //of one that only takes a 'String' parameter. In addition when using the
+    //'String' only constructor in Solr 4.4 one needs to explicitly #load()
+    //This method uses reflection to keep support for Solr 4.0 TO 4.4+
+    boolean solr44;
+    Constructor<CoreContainer> coreContainerConstructor;
+    Method coreContainerLoad;
+    try {
+      coreContainerConstructor = CoreContainer.class.getConstructor(
+          new Class[]{ String.class, File.class});
+      solr44 = false; //this constructor was removed with Solr 4.4+
+      coreContainerLoad = null; //there is no load method in Solr 4.3
+    } catch (NoSuchMethodException e) { //that means we have Solr 4.4+
+      try {
+        coreContainerConstructor = CoreContainer.class.getConstructor(
+            new Class[]{String.class});
+        solr44 = true;
+        coreContainerLoad = CoreContainer.class.getMethod("load");
+      } catch (NoSuchMethodException e1) {
+        throw new IllegalStateException("Unsupported Solr version",e);
+      }
+    }
     CoreContainer coreContainer;
     try {
-      coreContainer = new CoreContainer(solrHome, cfgFile);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
+      if(solr44){
+        coreContainer = coreContainerConstructor.newInstance(solrHome);
+        coreContainerLoad.invoke(coreContainer); //in Solr 4.4 we need to call load!
+      } else {
+        File cfgFile = new File(solrHome, "solr.xml");
+        coreContainer = coreContainerConstructor.newInstance(solrHome, cfgFile);
+      }
+    } catch (InstantiationException e) {
+        throw new IllegalStateException("Unsupported Solr version",e);
+    } catch (IllegalAccessException e) {
+        throw new IllegalStateException("Unsupported Solr version",e);
+    } catch (InvocationTargetException e) {
+        throw new IllegalStateException("Unsupported Solr version",e);
     }
     return new EmbeddedSolrServer(coreContainer, ""/*core name*/);
   }

@@ -41,6 +41,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -57,7 +59,41 @@ public class TaggerFstCorpus implements Serializable {
 
   private static final Logger log = LoggerFactory.getLogger(TaggerFstCorpus.class);
 
-  private static final PositiveIntOutputs fstOutputs = PositiveIntOutputs.getSingleton(true);
+  private static final PositiveIntOutputs fstOutputs;
+  //There was an API change in Solr 4.4: The 
+  //  PositiveIntOutputs.getSingleton(boolean)
+  //was removed in favour of a method with no argument.
+  //The following static initializer uses reflection to keep support for
+  //Solr 4.0 to 4.4+
+  static {
+    Method m;
+    boolean solr44;
+    try {
+      m = PositiveIntOutputs.class.getMethod("getSingleton", boolean.class);
+      solr44 = false;
+    } catch (NoSuchMethodException e) {
+      try {
+        m = PositiveIntOutputs.class.getMethod("getSingleton");
+      } catch (NoSuchMethodException e1) {
+        throw new IllegalStateException("Unsupported Solr version", e1);
+      }
+      solr44 = true;
+    }
+    try {
+      if(solr44){
+        fstOutputs = PositiveIntOutputs.class.cast(m.invoke(null));
+      } else {
+        fstOutputs = PositiveIntOutputs.class.cast(m.invoke(null, true));
+      }
+    } catch (IllegalArgumentException e) {
+        throw new IllegalStateException("Unsupported Solr version", e);
+    } catch (IllegalAccessException e) {
+        throw new IllegalStateException("Unsupported Solr version", e);
+    } catch (InvocationTargetException e) {
+        throw new IllegalStateException("Unsupported Solr version", e);
+    }
+  }
+  
   private static final int MAX_PHRASE_LEN = 10;
 
   // characters in value:
@@ -309,11 +345,12 @@ public class TaggerFstCorpus implements Serializable {
     //result.length = 0;
     while (ts.incrementToken()) {
       int posInc = posIncAtt.getPositionIncrement();
-      if (posInc > 1) {
-        //TODO: maybe we do not need this
-        throw new IllegalArgumentException("term: " + text + " analyzed to a "
-            + "token with posinc " + posInc + " (posinc MUST BE 0 or 1)");
-      }
+// Deactivated as part of Solr 4.4 upgrade (see Issue-14 for details)
+//      if (posInc > 1) {
+//        //TODO: maybe we do not need this
+//        throw new IllegalArgumentException("term: " + text + " analyzed to a "
+//            + "token with posinc " + posInc + " (posinc MUST BE 0 or 1)");
+//      }
       byteRefAtt.fillBytesRef();
       BytesRef termBr = byteRefAtt.getBytesRef();
       int length = termBr.length;
