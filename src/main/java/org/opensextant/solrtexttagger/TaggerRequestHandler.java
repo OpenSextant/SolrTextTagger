@@ -25,7 +25,6 @@ package org.opensextant.solrtexttagger;
 import com.google.common.io.CharStreams;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.analysis.miscellaneous.WordDelimiterFilter;
 import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.index.ReaderUtil;
 import org.apache.lucene.queries.function.FunctionValues;
@@ -38,6 +37,8 @@ import org.apache.lucene.util.IntsRef;
 import org.apache.lucene.util.OpenBitSet;
 import org.apache.solr.common.SolrException;
 import org.apache.solr.common.params.CommonParams;
+import org.apache.solr.common.params.MapSolrParams;
+import org.apache.solr.common.params.MultiMapSolrParams;
 import org.apache.solr.common.params.SolrParams;
 import org.apache.solr.common.util.ContentStream;
 import org.apache.solr.common.util.NamedList;
@@ -57,32 +58,33 @@ import java.io.StringReader;
 import java.util.*;
 
 /**
+ * Scans posted text, looking for matching strings in the Solr index.
+ * The public static final String members are request parameters.
+ *
  * @author David Smiley - dsmiley@mitre.org
  */
 public class TaggerRequestHandler extends RequestHandlerBase {
 
+  /** Request parameter. */
   private static final String OVERLAPS = "overlaps";
-  private final Logger log = LoggerFactory.getLogger(getClass());
-
   /** Request parameter. */
   public static final String TAGS_LIMIT = "tagsLimit";
   /** Request parameter. */
-  public static final String SUB_TAGS = "subTags";//deprecated
-  private static final String MATCH_TEXT = "matchText";
-  /** Request parameter */
-  public static final String ALLOW_SKIPPED = "allowSkippedTokens";
-  private boolean defaultSkippedTokensState;
+  @Deprecated
+  public static final String SUB_TAGS = "subTags";
+  /** Request parameter. */
+  public static final String MATCH_TEXT = "matchText";
+  /** Request parameter. */
+  public static final String SKIP_ALT_TOKENS = "skipAltTokens";
+
+  private final Logger log = LoggerFactory.getLogger(getClass());
 
   private TaggerFstCorpus _corpus;//synchronized access
-
-  @Override
-  public void init(NamedList args) {
-    super.init(args);
-    defaultSkippedTokensState = SolrParams.toSolrParams(getInitArgs()).getBool(ALLOW_SKIPPED, false);
-  }
   
   @Override
   public void handleRequestBody(SolrQueryRequest req, SolrQueryResponse rsp) throws Exception {
+    setTopInitArgsAsInvariants(req);
+
     boolean build = req.getParams().getBool("build", false);
     TaggerFstCorpus corpus = getCorpus(build, req, rsp);
     if (build)//just build; that's it.
@@ -111,9 +113,7 @@ public class TaggerRequestHandler extends RequestHandlerBase {
     final boolean addMatchText = req.getParams().getBool(MATCH_TEXT, false);
     final String indexedField = corpus.getIndexedField();
     final SchemaField idSchemaField = req.getSchema().getUniqueKeyField();
-
-    final boolean skippedTokenState = req.getParams().getBool(ALLOW_SKIPPED, 
-        defaultSkippedTokensState);
+    final boolean skipAltTokens = req.getParams().getBool(SKIP_ALT_TOKENS, false);
     
     //Get posted data
     Reader reader = null;
@@ -147,12 +147,12 @@ public class TaggerRequestHandler extends RequestHandlerBase {
     final List tags = new ArrayList(2000);
 
     try {
-      //use the QueryAnalzer for tagging parsed Text. Especially when using
+      //use the QueryAnalyzer for tagging parsed Text. Especially when using
       //WordDelimiterFilter one might want to use different analyzer configs
       //for indexing (building the FST) and tagging.
       Analyzer analyzer = req.getSchema().getField(indexedField).getType().getQueryAnalyzer();
       TokenStream tokenStream = analyzer.tokenStream("", reader);
-      new Tagger(corpus, tokenStream, tagClusterReducer, skippedTokenState) {
+      new Tagger(corpus, tokenStream, tagClusterReducer, skipAltTokens) {
         @SuppressWarnings("unchecked")
         @Override
         protected void tagCallback(int startOffset, int endOffset, long docIdsKey) {
@@ -218,6 +218,24 @@ public class TaggerRequestHandler extends RequestHandlerBase {
     rsp.add("matchingDocs", docs);
   }
 
+  /**
+   * This request handler supports configuration options defined at the top level as well as
+   * those in typical Solr 'defaults', 'appends', and 'invariants'.  The top level ones are treated
+   * as invariants.
+   */
+  private void setTopInitArgsAsInvariants(SolrQueryRequest req) {
+    // First convert top level initArgs to SolrParams
+    HashMap<String,String> map = new HashMap<String,String>();
+    for (int i=0; i<initArgs.size(); i++) {
+      Object val = initArgs.getVal(i);
+      if (val != null && !(val instanceof NamedList))
+        map.put(initArgs.getName(i), val.toString());
+    }
+    SolrParams topInvariants = new MapSolrParams(map);
+    // By putting putting the top level into the 1st arg, it overrides request params in 2nd arg.
+    req.setParams(SolrParams.wrapDefaults(topInvariants, req.getParams()));
+  }
+
   /** Gets the corpus if it's ready and not stale, otherwise initializes it. */
   private synchronized TaggerFstCorpus getCorpus(boolean forceBuild,
       SolrQueryRequest req, SolrQueryResponse rsp) throws IOException {
@@ -233,7 +251,7 @@ public class TaggerRequestHandler extends RequestHandlerBase {
   }
 
   private TaggerFstCorpus initCorpus(SolrQueryRequest req, boolean forceRebuild) throws IOException {
-    SolrParams params = SolrParams.wrapDefaults(req.getParams(), SolrParams.toSolrParams(getInitArgs()));
+    SolrParams params = req.getParams();
     //--load params
     String indexedField = params.get("indexedField");
     if (indexedField == null)

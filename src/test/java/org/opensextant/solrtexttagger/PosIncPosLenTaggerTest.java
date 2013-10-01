@@ -212,11 +212,11 @@ public class PosIncPosLenTaggerTest extends AbstractTaggerTest {
   }
   
   /*
-   * The next three tests do check the 'allowSkippedTokens'
+   * The next three tests do check the 'skipAltTokens'
    */
   
   @Test
-  public void testSkippedTokensDefault() throws Exception {
+  public void testSkipAltTokensDefault() throws Exception {
     this.requestHandler = "/tag3a";
     this.overlaps = "LONGEST_DOMINANT_RIGHT";
       
@@ -235,7 +235,7 @@ public class PosIncPosLenTaggerTest extends AbstractTaggerTest {
   }
   
   @Test
-  public void testSkippedTokensDisable() throws Exception {
+  public void testSkipAltTokensDisabled() throws Exception {
     this.requestHandler = "/tag3b";
     this.overlaps = "LONGEST_DOMINANT_RIGHT";
     
@@ -254,7 +254,7 @@ public class PosIncPosLenTaggerTest extends AbstractTaggerTest {
   }
   
   @Test
-  public void testSkippedTokensEnabled() throws Exception {
+  public void testSkipAltTokensEnabled() throws Exception {
     this.requestHandler = "/tag3c";
     this.overlaps = "LONGEST_DOMINANT_RIGHT";
     

@@ -54,19 +54,19 @@ public abstract class Tagger {
 
   private final TagClusterReducer tagClusterReducer;
 
-  private final boolean allowSkippedTokens; 
+  private final boolean skipAltTokens;
+
   /**
-   * field used to keep the state if the WARNING about skipped tokens was 
-   * already logged.
+   * Whether the WARNING about skipped tokens was already logged.
    */
-  private boolean loggedSkippedTokenWarning = false;
+  private boolean loggedSkippedAltTokenWarning = false;
   
   public Tagger(TaggerFstCorpus corpus, TokenStream tokenStream,
-                TagClusterReducer tagClusterReducer, boolean allowSkippedTokens) 
+                TagClusterReducer tagClusterReducer, boolean skipAltTokens)
                         throws IOException {
     this.corpus = corpus;
     this.tokenStream = tokenStream;
-    this.allowSkippedTokens = allowSkippedTokens;
+    this.skipAltTokens = skipAltTokens;
 //    termAtt = tokenStream.addAttribute(CharTermAttribute.class);
     byteRefAtt = tokenStream.addAttribute(TermToBytesRefAttribute.class);
     posIncAtt = tokenStream.addAttribute(PositionIncrementAttribute.class);
@@ -92,15 +92,14 @@ public abstract class Tagger {
             new Object[]{byteRefAtt, posIncAtt.getPositionIncrement(),
                 offsetAtt.startOffset(), offsetAtt.endOffset()});
       }
-      //check for posInc < 1 (alternate Tokens)
+      //check for posInc < 1 (alternate Tokens, such as expanded Synonyms)
       if (posIncAtt.getPositionIncrement() < 1) {
-        //TODO: make performed operation configurable
-        //(a) Deal this as a configuration issue and throw an exception
-        if(!allowSkippedTokens){
+        //(a) Deal with this as a configuration issue and throw an exception
+        if (!skipAltTokens) {
           throw new UnsupportedTokenException("Query Analyzer generates alternate "
               + "Tokens (posInc == 0). Please adapt your Analyzer configuration or "
-              + "enable '" + TaggerRequestHandler.ALLOW_SKIPPED + "' to skip such "
-              + "tokens. NOTE: enabling '" + TaggerRequestHandler.ALLOW_SKIPPED
+              + "enable '" + TaggerRequestHandler.SKIP_ALT_TOKENS + "' to skip such "
+              + "tokens. NOTE: enabling '" + TaggerRequestHandler.SKIP_ALT_TOKENS
               + "' might result in wrong tagging results if the index time analyzer "
               + "is not configured accordingly. For detailed information see "
               + "https://github.com/OpenSextant/SolrTextTagger/pull/11#issuecomment-24936225");
@@ -108,8 +107,8 @@ public abstract class Tagger {
           //(b) In case the index time analyser had indexed all variants (users
           //    need to ensure that) processing of alternate tokens can be skipped
           //    as anyways all alternatives will be contained in the FST.
-          skippedTokens=true; //ensure to have a logging informing about this
-          log.trace("  ... ignore token");
+          skippedTokens = true;
+          log.trace("  ... ignored token");
           continue;
         }
       }
@@ -165,10 +164,10 @@ public abstract class Tagger {
     advanceTagsAndProcessClusterIfDone(head, -1);
     assert head[0] == null;
 
-    if(!loggedSkippedTokenWarning && skippedTokens){
-      loggedSkippedTokenWarning = true; //only log once
+    if(!loggedSkippedAltTokenWarning && skippedTokens){
+      loggedSkippedAltTokenWarning = true; //only log once
       log.warn("The Tagger skiped some alternate tokens (tokens with posInc == 0) "
-          + "while processing a text. This may cause problems with some Analyer "
+          + "while processing text. This may cause problems with some Analyer "
           + "configurations (e.g. query time synonym expansion). For details see "
           + "https://github.com/OpenSextant/SolrTextTagger/pull/11#issuecomment-24936225");
     }
