@@ -46,6 +46,29 @@
     <str name="fq">NOT name:(of the)</str><!-- filter out -->
   </requestHandler>
 
+  <!-- used for testing PositionIncrementAttribute and PositionLengthAttribute support -->
+  <requestHandler name="/tag3a" class="org.opensextant.solrtexttagger.TaggerRequestHandler">
+    <str name="indexedField">name_tagIdx3</str>
+    <str name="storedField">name</str>
+    <bool name="partialMatches">false</bool>
+    <str name="fq">NOT name:(of the)</str><!-- filter out -->
+    <!--<bool name="allowSkippedTokens">true</bool>--> <!-- default -->" 
+  </requestHandler>
+  <requestHandler name="/tag3b" class="org.opensextant.solrtexttagger.TaggerRequestHandler">
+    <str name="indexedField">name_tagIdx3</str>
+    <str name="storedField">name</str>
+    <bool name="partialMatches">false</bool>
+    <str name="fq">NOT name:(of the)</str><!-- filter out -->
+    <bool name="allowSkippedTokens">false</bool> <!-- disallow -->
+  </requestHandler>
+  <requestHandler name="/tag3c" class="org.opensextant.solrtexttagger.TaggerRequestHandler">
+    <str name="indexedField">name_tagIdx3</str>
+    <str name="storedField">name</str>
+    <bool name="partialMatches">false</bool>
+    <str name="fq">NOT name:(of the)</str><!-- filter out -->
+    <bool name="allowSkippedTokens">true</bool> <!-- allow -->
+  </requestHandler>
+
   <requestHandler name="/tagPartial" class="org.opensextant.solrtexttagger.TaggerRequestHandler">
     <str name="indexedField">name_tagIdx</str>
     <str name="storedField">name</str>

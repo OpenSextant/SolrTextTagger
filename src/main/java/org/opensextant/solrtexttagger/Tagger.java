@@ -54,10 +54,19 @@ public abstract class Tagger {
 
   private final TagClusterReducer tagClusterReducer;
 
+  private final boolean allowSkippedTokens; 
+  /**
+   * field used to keep the state if the WARNING about skipped tokens was 
+   * already logged.
+   */
+  private boolean loggedSkippedTokenWarning = false;
+  
   public Tagger(TaggerFstCorpus corpus, TokenStream tokenStream,
-                TagClusterReducer tagClusterReducer) throws IOException {
+                TagClusterReducer tagClusterReducer, boolean allowSkippedTokens) 
+                        throws IOException {
     this.corpus = corpus;
     this.tokenStream = tokenStream;
+    this.allowSkippedTokens = allowSkippedTokens;
 //    termAtt = tokenStream.addAttribute(CharTermAttribute.class);
     byteRefAtt = tokenStream.addAttribute(TermToBytesRefAttribute.class);
     posIncAtt = tokenStream.addAttribute(PositionIncrementAttribute.class);
@@ -74,27 +83,37 @@ public abstract class Tagger {
     final TagLL[] head = new TagLL[1];
 
     MyFstCursor<Long> cursor = null;
-
-    int lastEndOffset = -1;
-
+    //boolean switch used to log warnings in case tokens where skipped during
+    //tagging.
+    boolean skippedTokens = false; 
     while (tokenStream.incrementToken()) {
       if (log.isTraceEnabled()) {
         log.trace("Token: {}, posInc: {},  offset: [{},{}]",
             new Object[]{byteRefAtt, posIncAtt.getPositionIncrement(),
                 offsetAtt.startOffset(), offsetAtt.endOffset()});
       }
-
-      //-- If PositionIncrement > 1 then finish all tags
-      int posInc = posIncAtt.getPositionIncrement();
-      if (posInc < 1 || offsetAtt.startOffset() < lastEndOffset) {
-        //tokens with a position increment < 1 (alternate tokens) can be
-        //ignored as all alternates are encoded in the FST
-        //Also Tokens overlapping with already processed tokens can be ignored
-        log.trace("  ... ignore token");
-        continue;
+      //check for posInc < 1 (alternate Tokens)
+      if (posIncAtt.getPositionIncrement() < 1) {
+        //TODO: make performed operation configurable
+        //(a) Deal this as a configuration issue and throw an exception
+        if(!allowSkippedTokens){
+          throw new UnsupportedTokenException("Query Analyzer generates alternate "
+              + "Tokens (posInc == 0). Please adapt your Analyzer configuration or "
+              + "enable '" + TaggerRequestHandler.ALLOW_SKIPPED + "' to skip such "
+              + "tokens. NOTE: enabling '" + TaggerRequestHandler.ALLOW_SKIPPED
+              + "' might result in wrong tagging results if the index time analyzer "
+              + "is not configured accordingly. For detailed information see "
+              + "https://github.com/OpenSextant/SolrTextTagger/pull/11#issuecomment-24936225");
+        } else {
+          //(b) In case the index time analyser had indexed all variants (users
+          //    need to ensure that) processing of alternate tokens can be skipped
+          //    as anyways all alternatives will be contained in the FST.
+          skippedTokens=true; //ensure to have a logging informing about this
+          log.trace("  ... ignore token");
+          continue;
+        }
       }
-      //we will process this token ...
-      lastEndOffset = offsetAtt.endOffset(); //update lastEndOffset
+      //-- If PositionIncrement > 1 then finish all tags
 //Deactivated as part of Solr 4.4 upgrade (see Issue-14 for details)
 //      if (posInc > 1) {
 //        log.trace("   - posInc > 1 ... mark cluster as done");
@@ -146,6 +165,14 @@ public abstract class Tagger {
     advanceTagsAndProcessClusterIfDone(head, -1);
     assert head[0] == null;
 
+    if(!loggedSkippedTokenWarning && skippedTokens){
+      loggedSkippedTokenWarning = true; //only log once
+      log.warn("The Tagger skiped some alternate tokens (tokens with posInc == 0) "
+          + "while processing a text. This may cause problems with some Analyer "
+          + "configurations (e.g. query time synonym expansion). For details see "
+          + "https://github.com/OpenSextant/SolrTextTagger/pull/11#issuecomment-24936225");
+    }
+    
     tokenStream.end();
     tokenStream.close();
   }
