@@ -211,18 +211,58 @@ public class PosIncPosLenTaggerTest extends AbstractTaggerTest {
       
   }
   
+  /*
+   * The next three tests do check the 'allowSkippedTokens'
+   */
+  
   @Test
-  public void testSkippedTokens() throws Exception {
-      this.requestHandler = "/tag3";
-      this.overlaps = "LONGEST_DOMINANT_RIGHT";
+  public void testSkippedTokensDefault() throws Exception {
+    this.requestHandler = "/tag3a";
+    this.overlaps = "LONGEST_DOMINANT_RIGHT";
       
-      //configured synonym 
-      //    Television, TV
-      // index time expand=false AND query time expand=true
-      buildNames("Television");
+    //configured synonym 
+    //    Television, TV
+    // index time expand=false AND query time expand=true
+    buildNames("Television");
+    try {
       assertTags("Season 24 of the Simpsons will be in television next month", "television");
       assertTags("An Internet TV service providing on demand access.", "TV");
-
+      Assert.fail("expects an UnsupportedTokenException!");
+    } catch (RuntimeException e) {
+      //expects an UnsupportedTokenException as cause
+      Assert.assertTrue(e instanceof UnsupportedTokenException);
+    }
   }
   
+  @Test
+  public void testSkippedTokensDisable() throws Exception {
+    this.requestHandler = "/tag3b";
+    this.overlaps = "LONGEST_DOMINANT_RIGHT";
+    
+    //configured synonym 
+    //    Television, TV
+    // index time expand=false AND query time expand=true
+    buildNames("Television");
+    try {
+      assertTags("Season 24 of the Simpsons will be in television next month", "television");
+      assertTags("An Internet TV service providing on demand access.", "TV");
+      Assert.fail("expects an UnsupportedTokenException!");
+    } catch (RuntimeException e) {
+      //expects an UnsupportedTokenException as cause
+      Assert.assertTrue(e instanceof UnsupportedTokenException);
+    }
+  }
+  
+  @Test
+  public void testSkippedTokensEnabled() throws Exception {
+    this.requestHandler = "/tag3c";
+    this.overlaps = "LONGEST_DOMINANT_RIGHT";
+    
+    //configured synonym 
+    //    Television, TV
+    // index time expand=false AND query time expand=true
+    buildNames("Television");
+    assertTags("Season 24 of the Simpsons will be in television next month", "television");
+    assertTags("An Internet TV service providing on demand access.", "TV");
+  }
 }

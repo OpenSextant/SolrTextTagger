@@ -69,9 +69,18 @@ public class TaggerRequestHandler extends RequestHandlerBase {
   /** Request parameter. */
   public static final String SUB_TAGS = "subTags";//deprecated
   private static final String MATCH_TEXT = "matchText";
+  /** Request parameter */
+  public static final String ALLOW_SKIPPED = "allowSkippedTokens";
+  private boolean defaultSkippedTokensState;
 
   private TaggerFstCorpus _corpus;//synchronized access
 
+  @Override
+  public void init(NamedList args) {
+    super.init(args);
+    defaultSkippedTokensState = SolrParams.toSolrParams(getInitArgs()).getBool(ALLOW_SKIPPED, false);
+  }
+  
   @Override
   public void handleRequestBody(SolrQueryRequest req, SolrQueryResponse rsp) throws Exception {
     boolean build = req.getParams().getBool("build", false);
@@ -103,6 +112,9 @@ public class TaggerRequestHandler extends RequestHandlerBase {
     final String indexedField = corpus.getIndexedField();
     final SchemaField idSchemaField = req.getSchema().getUniqueKeyField();
 
+    final boolean skippedTokenState = req.getParams().getBool(ALLOW_SKIPPED, 
+        defaultSkippedTokensState);
+    
     //Get posted data
     Reader reader = null;
     Iterable<ContentStream> streams = req.getContentStreams();
@@ -140,7 +152,7 @@ public class TaggerRequestHandler extends RequestHandlerBase {
       //for indexing (building the FST) and tagging.
       Analyzer analyzer = req.getSchema().getField(indexedField).getType().getQueryAnalyzer();
       TokenStream tokenStream = analyzer.tokenStream("", reader);
-      new Tagger(corpus, tokenStream, tagClusterReducer) {
+      new Tagger(corpus, tokenStream, tagClusterReducer, skippedTokenState) {
         @SuppressWarnings("unchecked")
         @Override
         protected void tagCallback(int startOffset, int endOffset, long docIdsKey) {
