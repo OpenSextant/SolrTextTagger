@@ -211,4 +211,18 @@ public class PosIncPosLenTaggerTest extends AbstractTaggerTest {
       
   }
   
+  @Test
+  public void testSkippedTokens() throws Exception {
+      this.requestHandler = "/tag3";
+      this.overlaps = "LONGEST_DOMINANT_RIGHT";
+      
+      //configured synonym 
+      //    Television, TV
+      // index time expand=false AND query time expand=true
+      buildNames("Television");
+      assertTags("Season 24 of the Simpsons will be in television next month", "television");
+      assertTags("An Internet TV service providing on demand access.", "TV");
+
+  }
+  
 }
