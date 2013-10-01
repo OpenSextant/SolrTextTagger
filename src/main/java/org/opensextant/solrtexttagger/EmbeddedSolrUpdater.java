@@ -43,7 +43,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * @author David Smiley - dsmiley@mitre.org
+ *
+ * @deprecated Not specific to this project; use your own or copy it.
  */
+@Deprecated
 public class EmbeddedSolrUpdater {
 
   //It would be nice to somehow extend Solr's SimplePostTool (post.jar) but
