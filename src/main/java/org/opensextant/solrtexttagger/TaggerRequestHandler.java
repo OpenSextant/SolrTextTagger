@@ -38,6 +38,7 @@ import org.apache.lucene.util.IntsRef;
 import org.apache.lucene.util.OpenBitSet;
 import org.apache.solr.common.SolrException;
 import org.apache.solr.common.params.CommonParams;
+import org.apache.solr.common.params.MapSolrParams;
 import org.apache.solr.common.params.SolrParams;
 import org.apache.solr.common.util.ContentStream;
 import org.apache.solr.common.util.NamedList;
@@ -55,21 +56,30 @@ import java.io.StringReader;
 import java.util.*;
 
 /**
+ * Scans posted text, looking for matching strings in the Solr index.
+ * The public static final String members are request parameters.
+ *
  * @author David Smiley - dsmiley@mitre.org
  */
 public class TaggerRequestHandler extends RequestHandlerBase {
 
+  /** Request parameter. */
   private static final String OVERLAPS = "overlaps";
-  private final Logger log = LoggerFactory.getLogger(getClass());
-
   /** Request parameter. */
   public static final String TAGS_LIMIT = "tagsLimit";
   /** Request parameter. */
-  public static final String SUB_TAGS = "subTags";//deprecated
-  private static final String MATCH_TEXT = "matchText";
+  @Deprecated
+  public static final String SUB_TAGS = "subTags";
+  /** Request parameter. */
+  public static final String MATCH_TEXT = "matchText";
+  /** Request parameter. */
+  public static final String SKIP_ALT_TOKENS = "skipAltTokens";
+
+  private final Logger log = LoggerFactory.getLogger(getClass());
 
   @Override
   public void handleRequestBody(SolrQueryRequest req, SolrQueryResponse rsp) throws Exception {
+    setTopInitArgsAsInvariants(req);
     SolrParams params = SolrParams.wrapDefaults(req.getParams(), SolrParams.toSolrParams(getInitArgs()));
 
     //--Read params
@@ -99,6 +109,7 @@ public class TaggerRequestHandler extends RequestHandlerBase {
     final int tagsLimit = req.getParams().getInt(TAGS_LIMIT, 1000);
     final boolean addMatchText = req.getParams().getBool(MATCH_TEXT, false);
     final SchemaField idSchemaField = req.getSchema().getUniqueKeyField();
+    final boolean skipAltTokens = req.getParams().getBool(SKIP_ALT_TOKENS, false);
 
     final SolrIndexSearcher searcher = req.getSearcher();
 
@@ -156,7 +167,7 @@ public class TaggerRequestHandler extends RequestHandlerBase {
         if (terms == null)
           throw new SolrException(SolrException.ErrorCode.BAD_REQUEST,
               "field "+indexedField+" has no indexed data");
-        Tagger tagger = new Tagger(terms, docBits, tokenStream, tagClusterReducer) {
+        Tagger tagger = new Tagger(terms, docBits, tokenStream, tagClusterReducer, skipAltTokens) {
           @SuppressWarnings("unchecked")
           @Override
           protected void tagCallback(int startOffset, int endOffset, Object docIdsKey) {
@@ -225,6 +236,24 @@ public class TaggerRequestHandler extends RequestHandlerBase {
     }
     DocList docs = new DocSlice(0, docIds.length, docIds, null, matchDocs, 1f);
     rsp.add("response", docs);//Solr's standard name for matching docs in response
+  }
+
+  /**
+   * This request handler supports configuration options defined at the top level as well as
+   * those in typical Solr 'defaults', 'appends', and 'invariants'.  The top level ones are treated
+   * as invariants.
+   */
+  private void setTopInitArgsAsInvariants(SolrQueryRequest req) {
+    // First convert top level initArgs to SolrParams
+    HashMap<String,String> map = new HashMap<String,String>();
+    for (int i=0; i<initArgs.size(); i++) {
+      Object val = initArgs.getVal(i);
+      if (val != null && !(val instanceof NamedList))
+        map.put(initArgs.getName(i), val.toString());
+    }
+    SolrParams topInvariants = new MapSolrParams(map);
+    // By putting putting the top level into the 1st arg, it overrides request params in 2nd arg.
+    req.setParams(SolrParams.wrapDefaults(topInvariants, req.getParams()));
   }
 
   @Override

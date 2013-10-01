@@ -31,6 +31,8 @@ import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.IntsRef;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -45,6 +47,7 @@ import java.util.Map;
  * @author David Smiley - dsmiley@mitre.org
  */
 public abstract class Tagger {
+  private final Logger log = LoggerFactory.getLogger(Tagger.class);
 
   private final TokenStream tokenStream;
   //private final CharTermAttribute termAtt;
@@ -58,13 +61,20 @@ public abstract class Tagger {
   private final Bits liveDocs;
 
   private Map<BytesRef, IntsRef> docIdsCache;
-
+  private final boolean skipAltTokens;
+  
+  /**
+   * Whether the WARNING about skipped tokens was already logged.
+   */
+  private boolean loggedSkippedAltTokenWarning = false;
+  
   public Tagger(Terms terms, Bits liveDocs, TokenStream tokenStream,
-                TagClusterReducer tagClusterReducer) throws IOException {
+                TagClusterReducer tagClusterReducer, boolean skipAltTokens) throws IOException {
     this.terms = terms;
     this.liveDocs = liveDocs;
     this.tokenStream = tokenStream;
-    //termAtt = tokenStream.addAttribute(CharTermAttribute.class);
+    this.skipAltTokens = skipAltTokens;
+//    termAtt = tokenStream.addAttribute(CharTermAttribute.class);
     byteRefAtt = tokenStream.addAttribute(TermToBytesRefAttribute.class);
     posIncAtt = tokenStream.addAttribute(PositionIncrementAttribute.class);
     offsetAtt = tokenStream.addAttribute(OffsetAttribute.class);
@@ -89,21 +99,41 @@ public abstract class Tagger {
     TermPrefixCursor cursor = null;//re-used
     TermsEnum termsEnum = null;//re-used
 
-    int lastStartOffset = -1;
-
+    //boolean switch used to log warnings in case tokens where skipped during
+    //tagging.
+    boolean skippedTokens = false;
     while (tokenStream.incrementToken()) {
-
-      //sanity-check that start offsets don't decrease
-      if (lastStartOffset > offsetAtt.startOffset())
-        throw new IllegalStateException("startOffset must be >= the one before: "+lastStartOffset);
-      lastStartOffset = offsetAtt.startOffset();
-
-      //-- If PositionIncrement > 1 then finish all tags
-      int posInc = posIncAtt.getPositionIncrement();
-      if (posInc < 1) {
-        throw new IllegalStateException("term: " + byteRefAtt.getBytesRef().utf8ToString()
-            + " analyzed to a token with posinc < 1: "+posInc);
-      } else if (posInc > 1) {
+      if (log.isTraceEnabled()) {
+        log.trace("Token: {}, posInc: {},  offset: [{},{}]",
+                new Object[]{byteRefAtt, posIncAtt.getPositionIncrement(),
+                        offsetAtt.startOffset(), offsetAtt.endOffset()});
+      }
+      //check for posInc < 1 (alternate Tokens, such as expanded Synonyms)
+      if (posIncAtt.getPositionIncrement() < 1) {
+        //(a) Deal with this as a configuration issue and throw an exception
+        if (!skipAltTokens) {
+          //TODO throw UnsupportedTokenException when PhraseBuilder is ported
+          throw new IllegalStateException("Query Analyzer generates alternate "
+              + "Tokens (posInc == 0). Please adapt your Analyzer configuration or "
+              + "enable '" + TaggerRequestHandler.SKIP_ALT_TOKENS + "' to skip such "
+              + "tokens. NOTE: enabling '" + TaggerRequestHandler.SKIP_ALT_TOKENS
+              + "' might result in wrong tagging results if the index time analyzer "
+              + "is not configured accordingly. For detailed information see "
+              + "https://github.com/OpenSextant/SolrTextTagger/pull/11#issuecomment-24936225");
+        } else {
+          //(b) In case the index time analyser had indexed all variants (users
+          //    need to ensure that) processing of alternate tokens can be skipped
+          //    as anyways all alternatives will be contained in the FST.
+          skippedTokens = true;
+          log.trace("  ... ignored token");
+          continue;
+        }
+      }
+      //-- If PositionIncrement > 1 (stopwords) then finish all tags
+      //TODO make configurable
+      //Deactivated as part of Solr 4.4 upgrade (see Issue-14 for details)
+      if (posIncAtt.getPositionIncrement() > 1) {
+        log.trace("   - posInc > 1 ... mark cluster as done");
         advanceTagsAndProcessClusterIfDone(head, null);
       }
 
@@ -156,6 +186,14 @@ public abstract class Tagger {
     advanceTagsAndProcessClusterIfDone(head, null);
     assert head[0] == null;
 
+    if(!loggedSkippedAltTokenWarning && skippedTokens){
+      loggedSkippedAltTokenWarning = true; //only log once
+      log.warn("The Tagger skiped some alternate tokens (tokens with posInc == 0) "
+          + "while processing text. This may cause problems with some Analyer "
+          + "configurations (e.g. query time synonym expansion). For details see "
+          + "https://github.com/OpenSextant/SolrTextTagger/pull/11#issuecomment-24936225");
+    }
+    
     tokenStream.end();
     //tokenStream.close(); caller closes because caller acquired it
   }

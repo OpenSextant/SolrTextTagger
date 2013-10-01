@@ -110,6 +110,10 @@ The tagger request-time parameters are:
  effectively stops after this point.  By default this is 1000.
  * rows: Solr's standard param to say the maximum number of documents to return,
  but defaulting to 10000 for a tag request.
+ * skipAltTokens: A boolean flag used to suppress errors that can occur if, for
+ example, you enable synonym expansion at query time in the analyzer, which you
+ normally shouldn't do. Let this default to false unless you know that such
+ tokens can't be avoided.
  * fl: Solr's standard param for listing the fields to return.
  * Most other standard parameters for working with Solr response formatting:
  echoParams, wt, indent, etc.
