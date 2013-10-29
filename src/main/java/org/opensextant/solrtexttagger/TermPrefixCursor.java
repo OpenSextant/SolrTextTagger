@@ -49,7 +49,7 @@ class TermPrefixCursor {
   private final Map<BytesRef, IntsRef> docIdsCache;
 
   private BytesRef prefixBuf;//we append to this
-  private boolean bufNeedsToBeCopied;
+  private boolean prefixBufOnLoan;//if true, PB is loaned; needs to be copied
   private DocsEnum docsEnum;
   private IntsRef docIds;
 
@@ -61,11 +61,13 @@ class TermPrefixCursor {
 
   /** Appends the separator char (if not the first) plus the given word to the prefix buffer,
    * then seeks to it. If the seek fails, false is returned and this cursor
-   * can be re-used as if in a new state.  The {{word}} BytesRef is considered temporary. */
+   * can be re-used as if in a new state.  The {@code word} BytesRef is considered temporary,
+   * and is not saved within this class. */
   boolean advance(BytesRef word) throws IOException {
     if (prefixBuf == null) { // first advance
-      prefixBuf = word;//temporary; don't copy it unless we have to
-      bufNeedsToBeCopied = true;
+      //set prefixBuf to word temporary. When advance() completes, we either null out or copy.
+      prefixBuf = word;
+      prefixBufOnLoan = true;
       if (seekPrefix()) {//... and we have to
         ensureBufIsACopy();
         return true;
@@ -76,7 +78,7 @@ class TermPrefixCursor {
 
     } else { // subsequent advance
       //append to existing
-      assert !bufNeedsToBeCopied;
+      assert !prefixBufOnLoan;
       prefixBuf.grow(prefixBuf.length + 1 + word.length);
       prefixBuf.bytes[prefixBuf.length++] = SEPARATOR_CHAR;
       prefixBuf.append(word);
@@ -90,12 +92,12 @@ class TermPrefixCursor {
   }
 
   private void ensureBufIsACopy() {
-    if (!bufNeedsToBeCopied)
+    if (!prefixBufOnLoan)
       return;
-    BytesRef word = prefixBuf;
-    prefixBuf = new BytesRef(64);
-    prefixBuf.copyBytes(word);
-    bufNeedsToBeCopied = false;
+    BytesRef newPrefixBuf = new BytesRef(64);
+    newPrefixBuf.copyBytes(prefixBuf);
+    prefixBuf = newPrefixBuf;
+    prefixBufOnLoan = false;
   }
 
   /** Seeks to prefixBuf or the next term that is prefixed by prefixBuf plus the separator char.
@@ -110,7 +112,7 @@ class TermPrefixCursor {
 
       case FOUND:
         docsEnum = termsEnum.docs(liveDocs, docsEnum, DocsEnum.FLAG_NONE);
-        docIds =  docsEnumToIntsRef(docsEnum);
+        docIds = docsEnumToIntsRef(docsEnum);
         if (docIds.length > 0) {
           return true;
         }
