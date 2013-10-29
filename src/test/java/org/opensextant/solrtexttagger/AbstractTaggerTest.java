@@ -65,7 +65,7 @@ public abstract class AbstractTaggerTest extends SolrTestCaseJ4 {
   protected String overlaps;//param
 
   //populated in buildNames; tested in assertTags
-  private List<String> NAMES;
+  protected static List<String> NAMES;
 
   @Override
   public void setUp() throws Exception {
@@ -110,7 +110,7 @@ public abstract class AbstractTaggerTest extends SolrTestCaseJ4 {
     assertTags(reqDoc(doc), tts);
   }
 
-  protected void buildNames(String... names) throws Exception {
+  protected static void buildNames(String... names) throws Exception {
     deleteByQueryAndGetVersion("*:*", null);
     NAMES = Arrays.asList(names);
     //Collections.sort(NAMES);
@@ -176,7 +176,13 @@ public abstract class AbstractTaggerTest extends SolrTestCaseJ4 {
               matchingNames.get(id));
         }
       }
-      assertArrayEquals(Arrays.asList(mTags).toString(), aTags, mTags);
+      String message;
+      if (mTags.length > 10)
+        message = null;
+      else
+        message = Arrays.asList(mTags).toString();
+      assertSortedArrayEquals(message, aTags, mTags);
+
     } finally {
       req.close();
     }
@@ -190,6 +196,29 @@ public abstract class AbstractTaggerTest extends SolrTestCaseJ4 {
     Iterable<ContentStream> stream = Collections.singleton((ContentStream)new ContentStreamBase.StringStream(doc));
     req.setContentStreams(stream);
     return req;
+  }
+
+  /** Asserts the sorted arrays are equals, with a helpful error message when not.
+   * @param message
+   * @param expecteds
+   * @param actuals
+   */
+  public void assertSortedArrayEquals(String message, Object[] expecteds, Object[] actuals) {
+    AssertionError error = null;
+    try {
+      assertArrayEquals(null, expecteds, actuals);
+    } catch (AssertionError e) {
+      error = e;
+    }
+    if (error == null)
+      return;
+    TreeSet<Object> expectedRemaining = new TreeSet<Object>(Arrays.asList(expecteds));
+    expectedRemaining.removeAll(Arrays.asList(actuals));
+    if (!expectedRemaining.isEmpty())
+      fail(message+": didn't find expected "+expectedRemaining.first()+" (of "+expectedRemaining.size()+"); "+error.toString());
+    TreeSet<Object> actualsRemaining = new TreeSet<Object>(Arrays.asList(actuals));
+    actualsRemaining.removeAll(Arrays.asList(expecteds));
+    fail(message+": didn't expect "+actualsRemaining.first()+" (of "+actualsRemaining.size()+"); "+error.toString());
   }
 
   class TestTag implements Comparable {
@@ -208,8 +237,8 @@ public abstract class AbstractTaggerTest extends SolrTestCaseJ4 {
     public String toString() {
       return "TestTag{" +
           "[" + startOffset + "-" + endOffset + "]" +
-          " docName=(" + NAMES.indexOf(docName)+")" + docName +
-          " substr="+substring+
+          " doc=" + NAMES.indexOf(docName) + ":'" + docName + "'" +
+          (docName.equals(substring) || substring == null ? "" : " substr="+substring)+
           '}';
     }
 
@@ -225,7 +254,7 @@ public abstract class AbstractTaggerTest extends SolrTestCaseJ4 {
 
     @Override
     public int hashCode() {
-      return startOffset;//cheasy but correct
+      return startOffset;//cheesy but acceptable
     }
 
     @Override
