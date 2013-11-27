@@ -151,62 +151,64 @@ public class TaggerRequestHandler extends RequestHandlerBase {
     try {
       Analyzer analyzer = req.getSchema().getField(indexedField).getType().getQueryAnalyzer();
       TokenStream tokenStream = analyzer.tokenStream("", reader);
-
-      Terms terms = searcher.getAtomicReader().terms(indexedField);
-      if (terms == null)
-        throw new SolrException(SolrException.ErrorCode.BAD_REQUEST,
-            "field "+indexedField+" has no indexed data");
-      Tagger tagger = new Tagger(terms, docBits, tokenStream, tagClusterReducer) {
-        @SuppressWarnings("unchecked")
-        @Override
-        protected void tagCallback(int startOffset, int endOffset, Object docIdsKey) {
-          if (tags.size() >= tagsLimit)
-            return;
-          NamedList tag = new NamedList();
-          tag.add("startOffset", startOffset);
-          tag.add("endOffset", endOffset);
-          if (addMatchText)
-            tag.add("matchText", bufferedInput.substring(startOffset, endOffset));
-          //below caches, and also flags matchDocIdsBS
-          tag.add("ids", lookupSchemaDocIds(docIdsKey));
-          tags.add(tag);
-        }
-
-        Map<Object,List> docIdsListCache = new HashMap<Object, List>(2000);
-
-        ValueSourceAccessor uniqueKeyCache = new ValueSourceAccessor(searcher,
-            idSchemaField.getType().getValueSource(idSchemaField, null));
-
-        @SuppressWarnings("unchecked")
-        private List lookupSchemaDocIds(Object docIdsKey) {
-          List schemaDocIds = docIdsListCache.get(docIdsKey);
-          if (schemaDocIds != null)
-            return schemaDocIds;
-          IntsRef docIds = lookupDocIds(docIdsKey);
-          //translate lucene docIds to schema ids
-          schemaDocIds = new ArrayList(docIds.length);
-          for (int i = docIds.offset; i < docIds.offset + docIds.length; i++) {
-            int docId = docIds.ints[i];
-            matchDocIdsBS.set(docId);//also, flip docid in bitset
-            schemaDocIds.add(uniqueKeyCache.objectVal(docId));//translates here
+      try {
+        Terms terms = searcher.getAtomicReader().terms(indexedField);
+        if (terms == null)
+          throw new SolrException(SolrException.ErrorCode.BAD_REQUEST,
+              "field "+indexedField+" has no indexed data");
+        Tagger tagger = new Tagger(terms, docBits, tokenStream, tagClusterReducer) {
+          @SuppressWarnings("unchecked")
+          @Override
+          protected void tagCallback(int startOffset, int endOffset, Object docIdsKey) {
+            if (tags.size() >= tagsLimit)
+              return;
+            NamedList tag = new NamedList();
+            tag.add("startOffset", startOffset);
+            tag.add("endOffset", endOffset);
+            if (addMatchText)
+              tag.add("matchText", bufferedInput.substring(startOffset, endOffset));
+            //below caches, and also flags matchDocIdsBS
+            tag.add("ids", lookupSchemaDocIds(docIdsKey));
+            tags.add(tag);
           }
-          assert !schemaDocIds.isEmpty();
 
-          docIdsListCache.put(docIds, schemaDocIds);
-          return schemaDocIds;
-        }
+          Map<Object,List> docIdsListCache = new HashMap<Object, List>(2000);
 
-      };
-      tagger.enableDocIdsCache(2000);//TODO configurable
-      tagger.process();
+          ValueSourceAccessor uniqueKeyCache = new ValueSourceAccessor(searcher,
+              idSchemaField.getType().getValueSource(idSchemaField, null));
+
+          @SuppressWarnings("unchecked")
+          private List lookupSchemaDocIds(Object docIdsKey) {
+            List schemaDocIds = docIdsListCache.get(docIdsKey);
+            if (schemaDocIds != null)
+              return schemaDocIds;
+            IntsRef docIds = lookupDocIds(docIdsKey);
+            //translate lucene docIds to schema ids
+            schemaDocIds = new ArrayList(docIds.length);
+            for (int i = docIds.offset; i < docIds.offset + docIds.length; i++) {
+              int docId = docIds.ints[i];
+              matchDocIdsBS.set(docId);//also, flip docid in bitset
+              schemaDocIds.add(uniqueKeyCache.objectVal(docId));//translates here
+            }
+            assert !schemaDocIds.isEmpty();
+
+            docIdsListCache.put(docIds, schemaDocIds);
+            return schemaDocIds;
+          }
+
+        };
+        tagger.enableDocIdsCache(2000);//TODO configurable
+        tagger.process();
+      } finally {
+        tokenStream.close();
+      }
     } finally {
       reader.close();
     }
     rsp.add("tagsCount",tags.size());
     rsp.add("tags", tags);
 
-    ReturnFields returnFields = new SolrReturnFields( req );
-    rsp.setReturnFields( returnFields );
+    rsp.setReturnFields(new SolrReturnFields( req ));
 
     //Now we must supply a Solr DocList and add it to the response.
     //  Typically this is gotten via a SolrIndexSearcher.search(), but in this case we

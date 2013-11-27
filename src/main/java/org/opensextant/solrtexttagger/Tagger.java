@@ -157,7 +157,7 @@ public abstract class Tagger {
     assert head[0] == null;
 
     tokenStream.end();
-    tokenStream.close();
+    //tokenStream.close(); caller closes because caller acquired it
   }
 
   private void advanceTagsAndProcessClusterIfDone(TagLL[] head, BytesRef term) throws IOException {
