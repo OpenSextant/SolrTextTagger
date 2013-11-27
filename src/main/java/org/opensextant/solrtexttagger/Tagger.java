@@ -173,7 +173,7 @@ public abstract class Tagger {
     }
     
     tokenStream.end();
-    tokenStream.close();
+    //tokenStream.close(); caller closes because caller acquired it
   }
 
   private void advanceTagsAndProcessClusterIfDone(TagLL[] head, int termId) throws IOException {

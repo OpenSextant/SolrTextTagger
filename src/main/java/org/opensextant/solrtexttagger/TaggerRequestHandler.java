@@ -38,7 +38,6 @@ import org.apache.lucene.util.OpenBitSet;
 import org.apache.solr.common.SolrException;
 import org.apache.solr.common.params.CommonParams;
 import org.apache.solr.common.params.MapSolrParams;
-import org.apache.solr.common.params.MultiMapSolrParams;
 import org.apache.solr.common.params.SolrParams;
 import org.apache.solr.common.util.ContentStream;
 import org.apache.solr.common.util.NamedList;
@@ -152,54 +151,57 @@ public class TaggerRequestHandler extends RequestHandlerBase {
       //for indexing (building the FST) and tagging.
       Analyzer analyzer = req.getSchema().getField(indexedField).getType().getQueryAnalyzer();
       TokenStream tokenStream = analyzer.tokenStream("", reader);
-      new Tagger(corpus, tokenStream, tagClusterReducer, skipAltTokens) {
-        @SuppressWarnings("unchecked")
-        @Override
-        protected void tagCallback(int startOffset, int endOffset, long docIdsKey) {
-          if (tags.size() >= tagsLimit)
-            return;
-          NamedList tag = new NamedList();
-          tag.add("startOffset", startOffset);
-          tag.add("endOffset", endOffset);
-          if (addMatchText)
-            tag.add("matchText", bufferedInput.substring(startOffset,
-                endOffset));
-          //below caches, and also flags matchDocIdsBS
-          tag.add("ids", lookupSchemaDocIds(docIdsKey));
-          tags.add(tag);
-        }
-
-        Map<Long,List> docIdsListCache = new HashMap<Long, List>(2000);
-
-        ValueSourceAccessor uniqueKeyCache = new ValueSourceAccessor(searcher,
-            idSchemaField.getType().getValueSource(idSchemaField, null));
-
-        @SuppressWarnings("unchecked")
-        private List lookupSchemaDocIds(long docIdsKey) {
-          List schemaDocIds = docIdsListCache.get(docIdsKey);
-          if (schemaDocIds != null)
-            return schemaDocIds;
-          IntsRef docIds = lookupDocIds(docIdsKey);
-          //translate lucene docIds to schema ids
-          schemaDocIds = new ArrayList(docIds.length);
-          for (int i = docIds.offset; i < docIds.offset + docIds.length; i++) {
-            int docId = docIds.ints[i];
-            matchDocIdsBS.set(docId);//also, flip docid in bitset
-            schemaDocIds.add(uniqueKeyCache.objectVal(docId));//translates here
+      try {
+        new Tagger(corpus, tokenStream, tagClusterReducer, skipAltTokens) {
+          @SuppressWarnings("unchecked")
+          @Override
+          protected void tagCallback(int startOffset, int endOffset, long docIdsKey) {
+            if (tags.size() >= tagsLimit)
+              return;
+            NamedList tag = new NamedList();
+            tag.add("startOffset", startOffset);
+            tag.add("endOffset", endOffset);
+            if (addMatchText)
+              tag.add("matchText", bufferedInput.substring(startOffset,
+                  endOffset));
+            //below caches, and also flags matchDocIdsBS
+            tag.add("ids", lookupSchemaDocIds(docIdsKey));
+            tags.add(tag);
           }
-          docIdsListCache.put(docIdsKey, schemaDocIds);
-          return schemaDocIds;
-        }
 
-      }.process();
+          Map<Long,List> docIdsListCache = new HashMap<Long, List>(2000);
+
+          ValueSourceAccessor uniqueKeyCache = new ValueSourceAccessor(searcher,
+              idSchemaField.getType().getValueSource(idSchemaField, null));
+
+          @SuppressWarnings("unchecked")
+          private List lookupSchemaDocIds(long docIdsKey) {
+            List schemaDocIds = docIdsListCache.get(docIdsKey);
+            if (schemaDocIds != null)
+              return schemaDocIds;
+            IntsRef docIds = lookupDocIds(docIdsKey);
+            //translate lucene docIds to schema ids
+            schemaDocIds = new ArrayList(docIds.length);
+            for (int i = docIds.offset; i < docIds.offset + docIds.length; i++) {
+              int docId = docIds.ints[i];
+              matchDocIdsBS.set(docId);//also, flip docid in bitset
+              schemaDocIds.add(uniqueKeyCache.objectVal(docId));//translates here
+            }
+            docIdsListCache.put(docIdsKey, schemaDocIds);
+            return schemaDocIds;
+          }
+
+        }.process();
+      } finally {
+        tokenStream.close();
+      }
     } finally {
       reader.close();
     }
     rsp.add("tagsCount",tags.size());
     rsp.add("tags", tags);
 
-    ReturnFields returnFields = new SolrReturnFields( req );
-    rsp.setReturnFields( returnFields );
+    rsp.setReturnFields(new SolrReturnFields( req ));
 
     //Now we must supply a Solr DocList and add it to the response.
     //  Typically this is gotten via a SolrIndexSearcher.search(), but in this case we

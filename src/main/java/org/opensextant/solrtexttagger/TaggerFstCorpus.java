@@ -24,11 +24,7 @@ package org.opensextant.solrtexttagger;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
-import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
-import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
-import org.apache.lucene.analysis.tokenattributes.PositionLengthAttribute;
-import org.apache.lucene.analysis.tokenattributes.TermToBytesRefAttribute;
+import org.apache.lucene.analysis.tokenattributes.*;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.*;
 import org.apache.lucene.store.InputStreamDataInput;
@@ -43,11 +39,7 @@ import org.slf4j.LoggerFactory;
 import java.io.*;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Limitations:
@@ -329,70 +321,74 @@ public class TaggerFstCorpus implements Serializable {
     } else {
       pb.reset(); //reset the paths instance before usage
     }
+    Map<Integer, String> termIdMap; //trace level debugging only
     TokenStream ts = analyzer.tokenStream("", new StringReader(text));
-    TermToBytesRefAttribute byteRefAtt = ts.addAttribute(TermToBytesRefAttribute.class);
-    PositionIncrementAttribute posIncAtt = ts.addAttribute(PositionIncrementAttribute.class);
-    PositionLengthAttribute posLenAtt = ts.addAttribute(PositionLengthAttribute.class);
-    OffsetAttribute offsetAtt = ts.addAttribute(OffsetAttribute.class);
-    //for trace level debugging the consumed Tokens and the generated Paths
-    CharTermAttribute termAtt = null; //trace level debugging only
-    Map<Integer, String> termIdMap = null; //trace level debugging only
-    if (log.isTraceEnabled()) {
-      termAtt = ts.addAttribute(CharTermAttribute.class);
-      termIdMap = new HashMap<Integer, String>();
-    }
-    ts.reset();
-    //result.length = 0;
-    while (ts.incrementToken()) {
-      int posInc = posIncAtt.getPositionIncrement();
-//Deactivated as part of Solr 4.4 upgrade (see Issue-14 for details)
-//      if (posInc > 1) {
-//        //TODO: maybe we do not need this
-//        throw new IllegalArgumentException("term: " + text + " analyzed to a "
-//            + "token with posinc " + posInc + " (posinc MUST BE 0 or 1)");
-//      }
-      byteRefAtt.fillBytesRef();
-      BytesRef termBr = byteRefAtt.getBytesRef();
-      int length = termBr.length;
-      if (length == 0) { //ignore term (NOTE: that 'empty' is not set)
-        OffsetAttribute offset = ts.addAttribute(OffsetAttribute.class);
-        log.warn("token [{}, {}] or term: {} analyzed to a zero-length token",
-            new Object[]{offset.startOffset(), offset.endOffset(), text});
-      } else { //process term
-        int termId = lookupTermId(termBr);
-        if (log.isTraceEnabled()) {
-          log.trace("Token: {}, posInc: {}, posLen: {}, offset: [{},{}], termId {}",
-              new Object[]{termAtt, posInc, posLenAtt.getPositionLength(),
-                  offsetAtt.startOffset(), offsetAtt.endOffset(), termId});
-        }
-        if (termId == -1) {
-          //westei: changed this to a warning as I was getting this for terms with some
-          //rare special characters e.g. '∀' (for all) and a letter looking
-          //similar to the greek letter tau.
-          //in any way it looked better to ignore such terms rather than failing
-          //with an exception and having no FST at all.
-          log.warn("Couldn't lookup term TEXT=" + text + " TERM=" + termBr.utf8ToString());
-          //throw new IllegalStateException("Couldn't lookup term TEXT=" + text + " TERM="+termBr
-          // .utf8ToString());
-        } else {
+    try {
+      TermToBytesRefAttribute byteRefAtt = ts.addAttribute(TermToBytesRefAttribute.class);
+      PositionIncrementAttribute posIncAtt = ts.addAttribute(PositionIncrementAttribute.class);
+      PositionLengthAttribute posLenAtt = ts.addAttribute(PositionLengthAttribute.class);
+      OffsetAttribute offsetAtt = ts.addAttribute(OffsetAttribute.class);
+      //for trace level debugging the consumed Tokens and the generated Paths
+      CharTermAttribute termAtt = null; //trace level debugging only
+      termIdMap = null;
+      if (log.isTraceEnabled()) {
+        termAtt = ts.addAttribute(CharTermAttribute.class);
+        termIdMap = new HashMap<Integer, String>();
+      }
+      ts.reset();
+      //result.length = 0;
+      while (ts.incrementToken()) {
+        int posInc = posIncAtt.getPositionIncrement();
+  //Deactivated as part of Solr 4.4 upgrade (see Issue-14 for details)
+  //      if (posInc > 1) {
+  //        //TODO: maybe we do not need this
+  //        throw new IllegalArgumentException("term: " + text + " analyzed to a "
+  //            + "token with posinc " + posInc + " (posinc MUST BE 0 or 1)");
+  //      }
+        byteRefAtt.fillBytesRef();
+        BytesRef termBr = byteRefAtt.getBytesRef();
+        int length = termBr.length;
+        if (length == 0) { //ignore term (NOTE: that 'empty' is not set)
+          OffsetAttribute offset = ts.addAttribute(OffsetAttribute.class);
+          log.warn("token [{}, {}] or term: {} analyzed to a zero-length token",
+              new Object[]{offset.startOffset(), offset.endOffset(), text});
+        } else { //process term
+          int termId = lookupTermId(termBr);
           if (log.isTraceEnabled()) {
-            termIdMap.put(termId, termAtt.toString());
+            log.trace("Token: {}, posInc: {}, posLen: {}, offset: [{},{}], termId {}",
+                new Object[]{termAtt, posInc, posLenAtt.getPositionLength(),
+                    offsetAtt.startOffset(), offsetAtt.endOffset(), termId});
           }
-          try {
-            pb.addTerm(termId, offsetAtt.startOffset(), offsetAtt.endOffset(),
-                posInc, posLenAtt.getPositionLength());
-          } catch (UnsupportedTokenException e) {
-            //catch because here we can also print the text that failed to encode
-            log.error("Problematic Token '{}'[offset:[{},{}], posInc: {}] of Text '{}' ",
-                new Object[]{byteRefAtt, offsetAtt.startOffset(),
-                    offsetAtt.endOffset(), posInc, text});
-            throw e;
+          if (termId == -1) {
+            //westei: changed this to a warning as I was getting this for terms with some
+            //rare special characters e.g. '∀' (for all) and a letter looking
+            //similar to the greek letter tau.
+            //in any way it looked better to ignore such terms rather than failing
+            //with an exception and having no FST at all.
+            log.warn("Couldn't lookup term TEXT=" + text + " TERM=" + termBr.utf8ToString());
+            //throw new IllegalStateException("Couldn't lookup term TEXT=" + text + " TERM="+termBr
+            // .utf8ToString());
+          } else {
+            if (log.isTraceEnabled()) {
+              termIdMap.put(termId, termAtt.toString());
+            }
+            try {
+              pb.addTerm(termId, offsetAtt.startOffset(), offsetAtt.endOffset(),
+                  posInc, posLenAtt.getPositionLength());
+            } catch (UnsupportedTokenException e) {
+              //catch because here we can also print the text that failed to encode
+              log.error("Problematic Token '{}'[offset:[{},{}], posInc: {}] of Text '{}' ",
+                  new Object[]{byteRefAtt, offsetAtt.startOffset(),
+                      offsetAtt.endOffset(), posInc, text});
+              throw e;
+            }
           }
         }
       }
+      ts.end();
+    } finally {
+      ts.close();
     }
-    ts.end();
-    ts.close();
     IntsRef[] intsRefs = pb.getPhrases();
     if (log.isTraceEnabled()) {
       int n = 1;
