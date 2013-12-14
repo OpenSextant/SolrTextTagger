@@ -37,6 +37,7 @@ import org.apache.lucene.util.IntsRef;
 import org.apache.lucene.util.OpenBitSet;
 import org.apache.solr.common.SolrException;
 import org.apache.solr.common.params.CommonParams;
+import org.apache.solr.common.params.MapSolrParams;
 import org.apache.solr.common.params.SolrParams;
 import org.apache.solr.common.util.ContentStream;
 import org.apache.solr.common.util.NamedList;
@@ -56,23 +57,33 @@ import java.io.StringReader;
 import java.util.*;
 
 /**
+ * Scans posted text, looking for matching strings in the Solr index.
+ * The public static final String members are request parameters.
+ *
  * @author David Smiley - dsmiley@mitre.org
  */
 public class TaggerRequestHandler extends RequestHandlerBase {
 
+  /** Request parameter. */
   private static final String OVERLAPS = "overlaps";
-  private final Logger log = LoggerFactory.getLogger(getClass());
-
   /** Request parameter. */
   public static final String TAGS_LIMIT = "tagsLimit";
   /** Request parameter. */
-  public static final String SUB_TAGS = "subTags";//deprecated
-  private static final String MATCH_TEXT = "matchText";
+  @Deprecated
+  public static final String SUB_TAGS = "subTags";
+  /** Request parameter. */
+  public static final String MATCH_TEXT = "matchText";
+  /** Request parameter. */
+  public static final String SKIP_ALT_TOKENS = "skipAltTokens";
+
+  private final Logger log = LoggerFactory.getLogger(getClass());
 
   private TaggerFstCorpus _corpus;//synchronized access
-
+  
   @Override
   public void handleRequestBody(SolrQueryRequest req, SolrQueryResponse rsp) throws Exception {
+    setTopInitArgsAsInvariants(req);
+
     boolean build = req.getParams().getBool("build", false);
     TaggerFstCorpus corpus = getCorpus(build, req, rsp);
     if (build)//just build; that's it.
@@ -101,7 +112,8 @@ public class TaggerRequestHandler extends RequestHandlerBase {
     final boolean addMatchText = req.getParams().getBool(MATCH_TEXT, false);
     final String indexedField = corpus.getIndexedField();
     final SchemaField idSchemaField = req.getSchema().getUniqueKeyField();
-
+    final boolean skipAltTokens = req.getParams().getBool(SKIP_ALT_TOKENS, false);
+    
     //Get posted data
     Reader reader = null;
     Iterable<ContentStream> streams = req.getContentStreams();
@@ -134,56 +146,62 @@ public class TaggerRequestHandler extends RequestHandlerBase {
     final List tags = new ArrayList(2000);
 
     try {
-      Analyzer analyzer = req.getSchema().getField(indexedField).getType().getAnalyzer();
+      //use the QueryAnalyzer for tagging parsed Text. Especially when using
+      //WordDelimiterFilter one might want to use different analyzer configs
+      //for indexing (building the FST) and tagging.
+      Analyzer analyzer = req.getSchema().getField(indexedField).getType().getQueryAnalyzer();
       TokenStream tokenStream = analyzer.tokenStream("", reader);
-      new Tagger(corpus, tokenStream, tagClusterReducer) {
-        @SuppressWarnings("unchecked")
-        @Override
-        protected void tagCallback(int startOffset, int endOffset, long docIdsKey) {
-          if (tags.size() >= tagsLimit)
-            return;
-          NamedList tag = new NamedList();
-          tag.add("startOffset", startOffset);
-          tag.add("endOffset", endOffset);
-          if (addMatchText)
-            tag.add("matchText", bufferedInput.substring(startOffset,
-                endOffset));
-          //below caches, and also flags matchDocIdsBS
-          tag.add("ids", lookupSchemaDocIds(docIdsKey));
-          tags.add(tag);
-        }
-
-        Map<Long,List> docIdsListCache = new HashMap<Long, List>(2000);
-
-        ValueSourceAccessor uniqueKeyCache = new ValueSourceAccessor(searcher,
-            idSchemaField.getType().getValueSource(idSchemaField, null));
-
-        @SuppressWarnings("unchecked")
-        private List lookupSchemaDocIds(long docIdsKey) {
-          List schemaDocIds = docIdsListCache.get(docIdsKey);
-          if (schemaDocIds != null)
-            return schemaDocIds;
-          IntsRef docIds = lookupDocIds(docIdsKey);
-          //translate lucene docIds to schema ids
-          schemaDocIds = new ArrayList(docIds.length);
-          for (int i = docIds.offset; i < docIds.offset + docIds.length; i++) {
-            int docId = docIds.ints[i];
-            matchDocIdsBS.set(docId);//also, flip docid in bitset
-            schemaDocIds.add(uniqueKeyCache.objectVal(docId));//translates here
+      try {
+        new Tagger(corpus, tokenStream, tagClusterReducer, skipAltTokens) {
+          @SuppressWarnings("unchecked")
+          @Override
+          protected void tagCallback(int startOffset, int endOffset, long docIdsKey) {
+            if (tags.size() >= tagsLimit)
+              return;
+            NamedList tag = new NamedList();
+            tag.add("startOffset", startOffset);
+            tag.add("endOffset", endOffset);
+            if (addMatchText)
+              tag.add("matchText", bufferedInput.substring(startOffset,
+                  endOffset));
+            //below caches, and also flags matchDocIdsBS
+            tag.add("ids", lookupSchemaDocIds(docIdsKey));
+            tags.add(tag);
           }
-          docIdsListCache.put(docIdsKey, schemaDocIds);
-          return schemaDocIds;
-        }
 
-      }.process();
+          Map<Long,List> docIdsListCache = new HashMap<Long, List>(2000);
+
+          ValueSourceAccessor uniqueKeyCache = new ValueSourceAccessor(searcher,
+              idSchemaField.getType().getValueSource(idSchemaField, null));
+
+          @SuppressWarnings("unchecked")
+          private List lookupSchemaDocIds(long docIdsKey) {
+            List schemaDocIds = docIdsListCache.get(docIdsKey);
+            if (schemaDocIds != null)
+              return schemaDocIds;
+            IntsRef docIds = lookupDocIds(docIdsKey);
+            //translate lucene docIds to schema ids
+            schemaDocIds = new ArrayList(docIds.length);
+            for (int i = docIds.offset; i < docIds.offset + docIds.length; i++) {
+              int docId = docIds.ints[i];
+              matchDocIdsBS.set(docId);//also, flip docid in bitset
+              schemaDocIds.add(uniqueKeyCache.objectVal(docId));//translates here
+            }
+            docIdsListCache.put(docIdsKey, schemaDocIds);
+            return schemaDocIds;
+          }
+
+        }.process();
+      } finally {
+        tokenStream.close();
+      }
     } finally {
       reader.close();
     }
     rsp.add("tagsCount",tags.size());
     rsp.add("tags", tags);
 
-    ReturnFields returnFields = new SolrReturnFields( req );
-    rsp.setReturnFields( returnFields );
+    rsp.setReturnFields(new SolrReturnFields( req ));
 
     //Now we must supply a Solr DocList and add it to the response.
     //  Typically this is gotten via a SolrIndexSearcher.search(), but in this case we
@@ -202,6 +220,24 @@ public class TaggerRequestHandler extends RequestHandlerBase {
     rsp.add("matchingDocs", docs);
   }
 
+  /**
+   * This request handler supports configuration options defined at the top level as well as
+   * those in typical Solr 'defaults', 'appends', and 'invariants'.  The top level ones are treated
+   * as invariants.
+   */
+  private void setTopInitArgsAsInvariants(SolrQueryRequest req) {
+    // First convert top level initArgs to SolrParams
+    HashMap<String,String> map = new HashMap<String,String>();
+    for (int i=0; i<initArgs.size(); i++) {
+      Object val = initArgs.getVal(i);
+      if (val != null && !(val instanceof NamedList))
+        map.put(initArgs.getName(i), val.toString());
+    }
+    SolrParams topInvariants = new MapSolrParams(map);
+    // By putting putting the top level into the 1st arg, it overrides request params in 2nd arg.
+    req.setParams(SolrParams.wrapDefaults(topInvariants, req.getParams()));
+  }
+
   /** Gets the corpus if it's ready and not stale, otherwise initializes it. */
   private synchronized TaggerFstCorpus getCorpus(boolean forceBuild,
       SolrQueryRequest req, SolrQueryResponse rsp) throws IOException {
@@ -217,7 +253,7 @@ public class TaggerRequestHandler extends RequestHandlerBase {
   }
 
   private TaggerFstCorpus initCorpus(SolrQueryRequest req, boolean forceRebuild) throws IOException {
-    SolrParams params = SolrParams.wrapDefaults(req.getParams(), SolrParams.toSolrParams(getInitArgs()));
+    SolrParams params = req.getParams();
     //--load params
     String indexedField = params.get("indexedField");
     if (indexedField == null)

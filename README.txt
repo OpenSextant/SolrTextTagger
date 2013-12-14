@@ -15,6 +15,7 @@ see these resources:
 
 Contributors:
   * David Smiley (MITRE)
+  * Rupert Westenthaler
 
 ======== Build Instructions
 
@@ -38,18 +39,21 @@ A Solr schema.xml needs:
  * A place name field indexed with word tokenization and other desired text
  analysis suitable for matching input text against the corpus.
 
-The only requirement for the text analysis is that the words must be at
-consecutive positions (i.e. the position increment of each term must always be
-1).  So, be careful with use of stop words, synonyms, WordDelimiterFilter, and
-potentially others.  You'll get a hard error from the TaggerFstCorpus when this
-is violated when the FST is "built".  On the other hand, if the input text
-has a position increment greater than one (such as a token exceeding the default
-max character length of 255) then it is handled properly.  It's plausible that
-this restriction might be lifted in the future but it is tricky -- see this for
-more info:
-  http://blog.mikemccandless.com/2012/04/lucenes-tokenstreams-are-actually.html
+There are some nuances to properly configuring the analyzer. The *query* time analyzer should
+output tokens with posInc >= 1. So a StopwordFilter is ok but a SynonymFilter should only by used
+to normalize terms without expansion (or simply don't use synonyms at query time). There are
+similar considerations for WordDelimiterFilter -- don't use the catenate options.  The *index*
+analyzer has more freedom; this is where you can expand synonyms (if you choose),
+etc.  That being said, if posInc is ever 0 then there are some edge cases that result in errors,
+and the root cause are Lucene's analyzers.
+For more info on this see the Limitations section of this blog post:
+ http://blog.mikemccandless.com/2012/04/lucenes-tokenstreams-are-actually.html
+And as indicated in that blog post, any multi-term synonyms should be substituted by single-word
+synonyms but not the reverse. So synonyms.txt could have "Domain Name System => DNS" but not the
+reverse order. See the test configuration for a complex text analysis configuration that
+exercises these capabilities.
 
-Here is a sample field type config that should work quite well:
+Here is a sample simple field type config that should work quite well:
 
   <fieldType name="tag" class="solr.TextField" positionIncrementGap="100" >
     <analyzer>
@@ -121,6 +125,10 @@ The tagger request-time parameters are:
  effectively stops after this point.  By default this is 1000.
  * rows: Solr's standard param to say the maximum number of documents to return,
  but defaulting to 10000 for a tag request.
+ * skipAltTokens: A boolean flag used to suppress errors that can occur if, for
+ example, you enable synonym expansion at query time in the analyzer, which you
+ normally shouldn't do. Let this default to false unless you know that such
+ tokens can't be avoided.
  * fl: Solr's standard param for listing the fields to return.
  * Most other standard parameters for working with Solr response formatting:
  echoParams, wt, indent, etc.

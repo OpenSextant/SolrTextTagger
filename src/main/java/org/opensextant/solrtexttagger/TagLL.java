@@ -38,7 +38,7 @@ import java.io.IOException;
  *
  * @author David Smiley - dsmiley@mitre.org
  */
-class TagLL{
+public class TagLL{
 
   private final TagLL[] head;//a shared pointer to the head; 1 element
   TagLL prevTag, nextTag; // linked list
@@ -105,7 +105,7 @@ class TagLL{
 
   /** Removes this tag from the chain, connecting prevTag and nextTag. Does not modify "this" object's pointers,
    * so the caller can refer to nextTag after removing it. */
-  void removeLL() {
+  public void removeLL() {
     if (head[0] == this)
       head[0] = nextTag;
     if (prevTag != null) {
@@ -141,11 +141,25 @@ class TagLL{
     tag.prevTag = this;
   }
 
-  int charLen() {
+  public int charLen() {
     return endOffset - startOffset;
   }
 
-  boolean overlaps(TagLL other) {
+  public TagLL getNextTag() {
+    return nextTag;
+  }
+  
+  public TagLL getPrevTag() {
+    return prevTag;
+  }
+  
+  public int getStartOffset() {
+    return startOffset;
+  }
+  public int getEndOffset() {
+    return endOffset;
+  }
+  public boolean overlaps(TagLL other) {
     //don't use >= or <= because startOffset is inclusive while endOffset is exclusive
     if (startOffset < other.startOffset)
       return endOffset > other.startOffset;
