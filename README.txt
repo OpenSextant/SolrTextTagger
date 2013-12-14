@@ -114,6 +114,12 @@ The tagger request-time parameters are:
  example, you enable synonym expansion at query time in the analyzer, which you
  normally shouldn't do. Let this default to false unless you know that such
  tokens can't be avoided.
+ * ignoreStopwords: A boolean flag that causes stopwords (or any condition causing positions to
+ skip like >255 char words) to be ignored as if it wasn't there. Otherwise, the behavior is to treat
+ them as breaks in tagging on the presumption your indexed text-analysis configuration doesn't have
+ a StopWordFilter. By default the indexed analysis chain is checked for the presence of a
+ StopWordFilter and if found then ignoreStopWords is true if unspecified. You probably shouldn't
+ have a StopWordFilter configured and probably won't need to set this param either.
  * fl: Solr's standard param for listing the fields to return.
  * Most other standard parameters for working with Solr response formatting:
  echoParams, wt, indent, etc.

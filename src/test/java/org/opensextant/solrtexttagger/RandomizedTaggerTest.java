@@ -51,7 +51,7 @@ public class RandomizedTaggerTest extends AbstractTaggerTest {
     final int NUM_SINGLES = 4;//RandomInts.randomIntBetween(R, 1, 5);
     for (int i = 0; i < NUM_SINGLES; i++) {
       if (i == 0)//first is a big string (perhaps triggers bugs related to growing buffers)
-        names.add(randomStringOfLength(16, 32));//don't do > 32 due to maxTokenLength in schema
+        names.add(randomStringOfLength(16, 32));
       else
         names.add(randomString());
     }

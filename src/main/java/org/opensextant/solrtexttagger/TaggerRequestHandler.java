@@ -25,6 +25,8 @@ package org.opensextant.solrtexttagger;
 import com.google.common.io.CharStreams;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.core.StopFilterFactory;
+import org.apache.lucene.analysis.util.TokenFilterFactory;
 import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.index.ReaderUtil;
 import org.apache.lucene.index.Terms;
@@ -36,6 +38,7 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.IntsRef;
 import org.apache.lucene.util.OpenBitSet;
+import org.apache.solr.analysis.TokenizerChain;
 import org.apache.solr.common.SolrException;
 import org.apache.solr.common.params.CommonParams;
 import org.apache.solr.common.params.MapSolrParams;
@@ -45,6 +48,7 @@ import org.apache.solr.common.util.NamedList;
 import org.apache.solr.handler.RequestHandlerBase;
 import org.apache.solr.request.SolrQueryRequest;
 import org.apache.solr.response.SolrQueryResponse;
+import org.apache.solr.schema.FieldType;
 import org.apache.solr.schema.SchemaField;
 import org.apache.solr.search.*;
 import org.slf4j.Logger;
@@ -71,6 +75,8 @@ public class TaggerRequestHandler extends RequestHandlerBase {
   public static final String MATCH_TEXT = "matchText";
   /** Request parameter. */
   public static final String SKIP_ALT_TOKENS = "skipAltTokens";
+  /** Request parameter. */
+  public static final String IGNORE_STOPWORDS = "ignoreStopwords";
 
   private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -102,6 +108,8 @@ public class TaggerRequestHandler extends RequestHandlerBase {
     final boolean addMatchText = req.getParams().getBool(MATCH_TEXT, false);
     final SchemaField idSchemaField = req.getSchema().getUniqueKeyField();
     final boolean skipAltTokens = req.getParams().getBool(SKIP_ALT_TOKENS, false);
+    final boolean ignoreStopWords = req.getParams().getBool(IGNORE_STOPWORDS,
+            fieldHasIndexedStopFilter(indexedField, req));
 
     final SolrIndexSearcher searcher = req.getSearcher();
 
@@ -159,7 +167,8 @@ public class TaggerRequestHandler extends RequestHandlerBase {
         if (terms == null)
           throw new SolrException(SolrException.ErrorCode.BAD_REQUEST,
               "field "+indexedField+" has no indexed data");
-        Tagger tagger = new Tagger(terms, docBits, tokenStream, tagClusterReducer, skipAltTokens) {
+        Tagger tagger = new Tagger(terms, docBits, tokenStream, tagClusterReducer,
+                skipAltTokens, ignoreStopWords) {
           @SuppressWarnings("unchecked")
           @Override
           protected void tagCallback(int startOffset, int endOffset, Object docIdsKey) {
@@ -230,6 +239,20 @@ public class TaggerRequestHandler extends RequestHandlerBase {
     rsp.add("response", docs);//Solr's standard name for matching docs in response
   }
 
+  private boolean fieldHasIndexedStopFilter(String field, SolrQueryRequest req) {
+    FieldType fieldType = req.getSchema().getFieldType(field);
+    Analyzer analyzer = fieldType.getAnalyzer();//index analyzer
+    if (analyzer instanceof TokenizerChain) {
+      TokenizerChain tokenizerChain = (TokenizerChain) analyzer;
+      TokenFilterFactory[] tokenFilterFactories = tokenizerChain.getTokenFilterFactories();
+      for (TokenFilterFactory tokenFilterFactory : tokenFilterFactories) {
+        if (tokenFilterFactory instanceof StopFilterFactory)
+          return true;
+      }
+    }
+    return false;
+  }
+
   /**
    * This request handler supports configuration options defined at the top level as well as
    * those in typical Solr 'defaults', 'appends', and 'invariants'.  The top level ones are treated
@@ -243,6 +266,8 @@ public class TaggerRequestHandler extends RequestHandlerBase {
       if (val != null && !(val instanceof NamedList))
         map.put(initArgs.getName(i), val.toString());
     }
+    if (map.isEmpty())
+      return;//short circuit; nothing to do
     SolrParams topInvariants = new MapSolrParams(map);
     // By putting putting the top level into the 1st arg, it overrides request params in 2nd arg.
     req.setParams(SolrParams.wrapDefaults(topInvariants, req.getParams()));

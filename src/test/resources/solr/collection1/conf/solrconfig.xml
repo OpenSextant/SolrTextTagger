@@ -35,12 +35,16 @@
   <requestHandler name="/select" class="solr.SearchHandler"></requestHandler>
 
   <requestHandler name="/tag" class="org.opensextant.solrtexttagger.TaggerRequestHandler">
-    <str name="field">name_tagger</str>
+    <str name="field">name_tag</str>
     <str name="fq">NOT name:(of the)</str><!-- filter out -->
   </requestHandler>
 
+  <requestHandler name="/tagStop" class="org.opensextant.solrtexttagger.TaggerRequestHandler">
+    <str name="field">name_tagStop</str>
+  </requestHandler>
+
   <requestHandler name="/tagPartial" class="org.opensextant.solrtexttagger.TaggerRequestHandler">
-    <str name="field">name_partialTagger</str>
+    <str name="field">name_tagPartial</str>
     <str name="fq">NOT name:(of the)</str><!-- filter out -->
   </requestHandler>
 

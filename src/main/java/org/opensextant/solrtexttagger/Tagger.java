@@ -59,21 +59,21 @@ public abstract class Tagger {
   private final TagClusterReducer tagClusterReducer;
   private final Terms terms;
   private final Bits liveDocs;
+  private final boolean skipAltTokens;
+  private final boolean ignoreStopWords;
 
   private Map<BytesRef, IntsRef> docIdsCache;
-  private final boolean skipAltTokens;
-  
-  /**
-   * Whether the WARNING about skipped tokens was already logged.
-   */
+
+  /** Whether the WARNING about skipped tokens was already logged. */
   private boolean loggedSkippedAltTokenWarning = false;
-  
+
   public Tagger(Terms terms, Bits liveDocs, TokenStream tokenStream,
-                TagClusterReducer tagClusterReducer, boolean skipAltTokens) throws IOException {
+                TagClusterReducer tagClusterReducer, boolean skipAltTokens, boolean ignoreStopWords) throws IOException {
     this.terms = terms;
     this.liveDocs = liveDocs;
     this.tokenStream = tokenStream;
     this.skipAltTokens = skipAltTokens;
+    this.ignoreStopWords = ignoreStopWords;
 //    termAtt = tokenStream.addAttribute(CharTermAttribute.class);
     byteRefAtt = tokenStream.addAttribute(TermToBytesRefAttribute.class);
     posIncAtt = tokenStream.addAttribute(PositionIncrementAttribute.class);
@@ -129,10 +129,8 @@ public abstract class Tagger {
           continue;
         }
       }
-      //-- If PositionIncrement > 1 (stopwords) then finish all tags
-      //TODO make configurable
-      //Deactivated as part of Solr 4.4 upgrade (see Issue-14 for details)
-      if (posIncAtt.getPositionIncrement() > 1) {
+      //-- If PositionIncrement > 1 (stopwords)
+      if (!ignoreStopWords && posIncAtt.getPositionIncrement() > 1) {
         log.trace("   - posInc > 1 ... mark cluster as done");
         advanceTagsAndProcessClusterIfDone(head, null);
       }

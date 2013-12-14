@@ -84,17 +84,14 @@ public class ConcatenateFilter extends TokenFilter {
     buf.setLength(0);
     boolean firstTerm = true;
     while (input.incrementToken()) {
-      int posInc = posIncrAtt.getPositionIncrement();
-      if (firstTerm)
-        posInc--;
-      //Note: it's debatable what to do when posInc > 1 (stopword); see issue #13
-      for (int i = 0; i < posInc; i++) {
+      if (!firstTerm) {
         buf.append(separator);
       }
+      //TODO consider indexing special chars when posInc > 1 (stop words). We ignore for now. #13
       buf.append(termAtt);
       firstTerm = false;
     }
-    input.end();
+    input.end();//call here so we can see end of stream offsets
 
     termAtt.setEmpty().append(buf);
     //Setting the other attributes ultimately won't have much effect but lets be thorough
