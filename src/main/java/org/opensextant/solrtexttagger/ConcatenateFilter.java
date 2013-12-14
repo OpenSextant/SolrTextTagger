@@ -87,6 +87,7 @@ public class ConcatenateFilter extends TokenFilter {
       int posInc = posIncrAtt.getPositionIncrement();
       if (firstTerm)
         posInc--;
+      //Note: it's debatable what to do when posInc > 1 (stopword); see issue #13
       for (int i = 0; i < posInc; i++) {
         buf.append(separator);
       }
