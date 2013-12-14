@@ -48,7 +48,8 @@
     <fieldType name="tag" class="solr.TextField" positionIncrementGap="100"
                postingsFormat="Memory" omitTermFreqAndPositions="true" omitNorms="true">
       <analyzer type="index">
-        <tokenizer class="solr.StandardTokenizerFactory" />
+        <tokenizer class="solr.StandardTokenizerFactory"
+                   maxTokenLength="32"/><!-- 32 just for tests, bumps posInc -->
         <filter class="solr.ASCIIFoldingFilterFactory"/>
         <filter class="solr.LowerCaseFilterFactory"/>
 
@@ -66,9 +67,7 @@
     <fieldType name="tagPartial" class="solr.TextField" positionIncrementGap="100"
                postingsFormat="Memory" omitTermFreqAndPositions="true" omitNorms="true">
       <analyzer type="index">
-        <tokenizer class="solr.StandardTokenizerFactory"
-                   maxTokenLength="32"/>
-        <!-- 32 just for tests, bumps posInc -->
+        <tokenizer class="solr.StandardTokenizerFactory" />
         <filter class="solr.ASCIIFoldingFilterFactory"/>
         <filter class="solr.LowerCaseFilterFactory"/>
 
@@ -76,9 +75,7 @@
                 outputUnigramsIfNoShingles="true" maxShingleSize="10"  />
       </analyzer>
       <analyzer type="query">
-        <!-- 32 just for tests, bumps posInc -->
-        <tokenizer class="solr.StandardTokenizerFactory"
-                   maxTokenLength="32"/>
+        <tokenizer class="solr.StandardTokenizerFactory" />
         <filter class="solr.ASCIIFoldingFilterFactory"/>
         <filter class="solr.LowerCaseFilterFactory"/>
       </analyzer>

@@ -59,13 +59,19 @@ public class Tagger2Test extends AbstractTaggerTest {
   /** posInc > 1 https://github.com/OpenSextant/SolrTextTagger/issues/2 */
   public void testPosIncJump() throws Exception {
     this.overlaps = "LONGEST_DOMINANT_RIGHT";
-    StringBuilder tmp = new StringBuilder(40);//40 exceeds configured max token length
+    //40 exceeds configured max token length which means it in-effect becomes a stop-word
+    StringBuilder STOP = new StringBuilder(40);
     for (int i = 0; i < 40; i++) {
-      tmp.append((char)('0' + (i % 10)));
+      STOP.append((char) ('0' + (i % 10)));
     }
+
     String SANFRAN = "San Francisco";
-    buildNames(SANFRAN);
-    assertTags(tmp.toString()+" "+SANFRAN, SANFRAN);
+    String NEW_STOP_YORK = "New "+STOP+" York";
+    buildNames(SANFRAN, NEW_STOP_YORK);
+
+    assertTags(STOP + " " + SANFRAN, SANFRAN);
+    //TODO This is kinda unfortunate; may change in the future; See issue #13
+    assertTags(NEW_STOP_YORK);//doesn't match NEW STOP YORK
   }
 
 }
