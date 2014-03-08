@@ -71,7 +71,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
     <!-- Solr 4.2.0 still works, even though a test RE WordLengthTaggingFilterFactory fails. -->
-    <solr.version>4.4.0</solr.version>
+    <solr.version>4.7.0</solr.version>
   </properties>
 
   <dependencies>
