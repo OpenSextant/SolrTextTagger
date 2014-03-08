@@ -267,7 +267,7 @@ public class TaggerRequestHandler extends RequestHandlerBase {
     int maxLen = params.getInt("valueMaxLen", 100);
 
     //--Potentially check if can read a cached file from disk
-    SolrIndexSearcher searcher = req.getSearcher();
+    final SolrIndexSearcher searcher = req.getSearcher();
     long indexVersion = searcher.getIndexReader().getVersion();
 
     if (!forceRebuild) {
@@ -310,7 +310,7 @@ public class TaggerRequestHandler extends RequestHandlerBase {
 
           @Override
           public int length() {
-            return docSet.size();
+            return searcher.maxDoc();
           }
         };
       }
