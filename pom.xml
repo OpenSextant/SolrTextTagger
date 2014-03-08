@@ -104,6 +104,12 @@
       </exclusions>
     </dependency>
 
+    <dependency>
+      <groupId>org.apache.lucene</groupId>
+      <artifactId>lucene-core</artifactId>
+      <version>${solr.version}</version>
+    </dependency>
+
     <!-- LOGGING -->
     <dependency>
       <groupId>org.slf4j</groupId>
