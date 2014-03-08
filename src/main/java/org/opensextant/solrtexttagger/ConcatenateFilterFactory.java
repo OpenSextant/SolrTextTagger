@@ -23,7 +23,6 @@
 package org.opensextant.solrtexttagger;
 
 import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.analysis.shingle.ShingleFilter;
 import org.apache.lucene.analysis.util.TokenFilterFactory;
 
 import java.util.Map;
@@ -41,7 +40,7 @@ public class ConcatenateFilterFactory extends TokenFilterFactory {
    */
   public ConcatenateFilterFactory(Map<String, String> args) {
     super(args);
-    tokenSeparator = get(args, "tokenSeparator", ShingleFilter.TOKEN_SEPARATOR);
+    tokenSeparator = get(args, "tokenSeparator", " ");
     if (tokenSeparator.length() != 1)
       throw new IllegalArgumentException("tokenSeparator should be 1 char: "+tokenSeparator);
     if (!args.isEmpty()) {

@@ -124,7 +124,24 @@ public class TaggerRequestHandler extends RequestHandlerBase {
       } catch (SyntaxError e) {
         throw new SolrException(SolrException.ErrorCode.BAD_REQUEST, e);
       }
-      docBits = searcher.getDocSet(filterQuery).getBits();
+      final DocSet docSet = searcher.getDocSet(filterQuery);
+      //note: before Solr 4.7 we could call docSet.getBits() but no longer.
+      if (docSet instanceof BitDocSet) {
+        docBits = ((BitDocSet)docSet).getBits();
+      } else {
+        docBits = new Bits() {
+
+          @Override
+          public boolean get(int index) {
+            return docSet.exists(index);
+          }
+
+          @Override
+          public int length() {
+            return searcher.maxDoc();
+          }
+        };
+      }
     } else {
       docBits = searcher.getAtomicReader().getLiveDocs();
     }

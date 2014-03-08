@@ -65,8 +65,8 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <!-- tests pass with v4.6.0 -->
-    <solr.version>4.3.0</solr.version>
+    <!-- tests pass with v4.3.0 -->
+    <solr.version>4.7.0</solr.version>
   </properties>
 
   <dependencies>
