@@ -1,7 +1,19 @@
 language: java
-script: mvn -Drandomized.multiplier=10 clean verify
+script: mvn -Drandomized.multiplier=10 -Dsolr.version=$SOLR_VERSION clean verify
 jdk:
   - openjdk6
+env:
+  - SOLR_VERSION=4.7.1
+  - SOLR_VERSION=4.6.1
+  - SOLR_VERSION=4.5.1
+  - SOLR_VERSION=4.4.0
+  - SOLR_VERSION=4.3.1
+
+matrix:
+  include:
+    - jdk: openjdk7
+      env: SOLR_VERSION=4.8.1
+
 notifications:
   email:
-    - dsmiley@mitre.org
+    - dsmiley@apache.org

@@ -65,7 +65,7 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <!-- tests pass with v4.3.0 -->
+    <!-- tests pass with v4.3.0 and with 4.8.1.   See .travis.yml -->
     <solr.version>4.7.0</solr.version>
   </properties>
 
