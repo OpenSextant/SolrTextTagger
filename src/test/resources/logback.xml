@@ -35,9 +35,9 @@
   <!--<logger name="org.opensextant.solrtexttagger" level="DEBUG"/>-->
   <logger name="org.apache.solr" level="WARN"/>
   <!--<logger name="org.apache.solr.SolrTestCaseJ4" level="INFO"/>-->
-  <logger name="org.opensextant.solrtexttagger.TaggerTest" level="DEBUG"/>
+  <logger name="org.opensextant.solrtexttagger.TaggerTest" level="${log.level:-DEBUG}"/>
 
-  <root level="INFO">
+  <root level="${log.level:-INFO}">
     <appender-ref ref="STDOUT" />
   </root>
 </configuration>
