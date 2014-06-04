@@ -30,8 +30,9 @@ import java.io.IOException;
  * This is a Tag -- a startOffset, endOffset and value.
  * <p>
  * A Tag starts without a value in an
- * "advancing" state.  {@link #advance(org.apache.lucene.util.BytesRef, int)} is called with subsequent words
- * and then eventually it won't advance any more, and value is set (could be null).
+ * "advancing" state.  {@link #advance(org.apache.lucene.util.BytesRef, int)}
+ * is called with subsequent words and then eventually it won't advance any
+ * more, and value is set (could be null).
  * <p>
  * A Tag is also a doubly-linked-list (hence the LL in the name). All tags share
  * a reference to the head via a 1-element array, which is potentially modified
@@ -102,8 +103,9 @@ public class TagLL{
     }
   }
 
-  /** Removes this tag from the chain, connecting prevTag and nextTag. Does not modify "this" object's pointers,
-   * so the caller can refer to nextTag after removing it. */
+  /** Removes this tag from the chain, connecting prevTag and nextTag. Does not
+   * modify "this" object's pointers, so the caller can refer to nextTag after
+   * removing it. */
   public void removeLL() {
     if (head[0] == this)
       head[0] = nextTag;
@@ -147,11 +149,11 @@ public class TagLL{
   public TagLL getNextTag() {
     return nextTag;
   }
-  
+
   public TagLL getPrevTag() {
     return prevTag;
   }
-  
+
   public int getStartOffset() {
     return startOffset;
   }

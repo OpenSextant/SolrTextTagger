@@ -68,7 +68,8 @@ public abstract class Tagger {
   private boolean loggedSkippedAltTokenWarning = false;
 
   public Tagger(Terms terms, Bits liveDocs, TokenStream tokenStream,
-                TagClusterReducer tagClusterReducer, boolean skipAltTokens, boolean ignoreStopWords) throws IOException {
+                TagClusterReducer tagClusterReducer, boolean skipAltTokens,
+                boolean ignoreStopWords) throws IOException {
     this.terms = terms;
     this.liveDocs = liveDocs;
     this.tokenStream = tokenStream;
@@ -191,7 +192,7 @@ public abstract class Tagger {
           + "configurations (e.g. query time synonym expansion). For details see "
           + "https://github.com/OpenSextant/SolrTextTagger/pull/11#issuecomment-24936225");
     }
-    
+
     tokenStream.end();
     //tokenStream.close(); caller closes because caller acquired it
   }
