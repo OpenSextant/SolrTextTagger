@@ -65,8 +65,9 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <!-- tests pass with v4.3.0 and with 4.8.1.   See .travis.yml -->
-    <solr.version>4.7.0</solr.version>
+    <!-- tests pass with v4.3.0 thru 4.8.1.   See .travis.yml.  Keep default at the last Solr
+    version that supported JDK 1.6 (Solr v4.7), even though we work with higher.  -->
+    <solr.version>4.7.2</solr.version>
   </properties>
 
   <dependencies>
