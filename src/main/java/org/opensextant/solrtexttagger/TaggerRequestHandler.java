@@ -83,10 +83,9 @@ public class TaggerRequestHandler extends RequestHandlerBase {
   @Override
   public void handleRequestBody(SolrQueryRequest req, SolrQueryResponse rsp) throws Exception {
     setTopInitArgsAsInvariants(req);
-    SolrParams params = SolrParams.wrapDefaults(req.getParams(), SolrParams.toSolrParams(getInitArgs()));
 
     //--Read params
-    final String indexedField = params.get("field");
+    final String indexedField = req.getParams().get("field");
     if (indexedField == null)
       throw new RuntimeException("required param 'field'");
 
@@ -112,39 +111,6 @@ public class TaggerRequestHandler extends RequestHandlerBase {
             fieldHasIndexedStopFilter(indexedField, req));
 
     final SolrIndexSearcher searcher = req.getSearcher();
-
-    //--Find the set of documents matching the provided 'fq' (filter query)
-    final String corpusFilterQuery = params.get("fq");
-    final Bits docBits; //can be null to be all docs
-    if (corpusFilterQuery != null) {
-      QParser qParser = QParser.getParser(corpusFilterQuery, null, req);
-      Query filterQuery = null;
-      try {
-        filterQuery = qParser.parse();
-      } catch (SyntaxError e) {
-        throw new SolrException(SolrException.ErrorCode.BAD_REQUEST, e);
-      }
-      final DocSet docSet = searcher.getDocSet(filterQuery);
-      //note: before Solr 4.7 we could call docSet.getBits() but no longer.
-      if (docSet instanceof BitDocSet) {
-        docBits = ((BitDocSet)docSet).getBits();
-      } else {
-        docBits = new Bits() {
-
-          @Override
-          public boolean get(int index) {
-            return docSet.exists(index);
-          }
-
-          @Override
-          public int length() {
-            return searcher.maxDoc();
-          }
-        };
-      }
-    } else {
-      docBits = searcher.getAtomicReader().getLiveDocs();
-    }
 
     //--Get posted data
     Reader reader = null;
@@ -184,7 +150,7 @@ public class TaggerRequestHandler extends RequestHandlerBase {
         if (terms == null)
           throw new SolrException(SolrException.ErrorCode.BAD_REQUEST,
               "field "+indexedField+" has no indexed data");
-        Tagger tagger = new Tagger(terms, docBits, tokenStream, tagClusterReducer,
+        Tagger tagger = new Tagger(terms, computeDocCorpus(req), tokenStream, tagClusterReducer,
                 skipAltTokens, ignoreStopWords) {
           @SuppressWarnings("unchecked")
           @Override
@@ -256,6 +222,46 @@ public class TaggerRequestHandler extends RequestHandlerBase {
     rsp.add("response", docs);//Solr's standard name for matching docs in response
   }
 
+  /**
+   * The set of documents matching the provided 'fq' (filter query). Don't include deleted docs
+   * either. If null is returned, then all docs are available.
+   */
+  private Bits computeDocCorpus(SolrQueryRequest req) throws SyntaxError, IOException {
+    final String corpusFilterQuery = req.getParams().get("fq");
+    final SolrIndexSearcher searcher = req.getSearcher();
+    final Bits docBits;
+    if (corpusFilterQuery != null) {
+      QParser qParser = QParser.getParser(corpusFilterQuery, null, req);
+      Query filterQuery;
+      try {
+        filterQuery = qParser.parse();
+      } catch (SyntaxError e) {
+        throw new SolrException(SolrException.ErrorCode.BAD_REQUEST, e);
+      }
+      final DocSet docSet = searcher.getDocSet(filterQuery);//hopefully in the cache
+      //note: before Solr 4.7 we could call docSet.getBits() but no longer.
+      if (docSet instanceof BitDocSet) {
+        docBits = ((BitDocSet)docSet).getBits();
+      } else {
+        docBits = new Bits() {
+
+          @Override
+          public boolean get(int index) {
+            return docSet.exists(index);
+          }
+
+          @Override
+          public int length() {
+            return searcher.maxDoc();
+          }
+        };
+      }
+    } else {
+      docBits = searcher.getAtomicReader().getLiveDocs();
+    }
+    return docBits;
+  }
+
   private boolean fieldHasIndexedStopFilter(String field, SolrQueryRequest req) {
     FieldType fieldType = req.getSchema().getFieldType(field);
     Analyzer analyzer = fieldType.getAnalyzer();//index analyzer
@@ -277,7 +283,7 @@ public class TaggerRequestHandler extends RequestHandlerBase {
    */
   private void setTopInitArgsAsInvariants(SolrQueryRequest req) {
     // First convert top level initArgs to SolrParams
-    HashMap<String,String> map = new HashMap<String,String>();
+    HashMap<String,String> map = new HashMap<String,String>(initArgs.size());
     for (int i=0; i<initArgs.size(); i++) {
       Object val = initArgs.getVal(i);
       if (val != null && !(val instanceof NamedList))
