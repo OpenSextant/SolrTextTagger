@@ -68,7 +68,7 @@ import java.util.*;
 public class TaggerRequestHandler extends RequestHandlerBase {
 
   /** Request parameter. */
-  private static final String OVERLAPS = "overlaps";
+  public static final String OVERLAPS = "overlaps";
   /** Request parameter. */
   public static final String TAGS_LIMIT = "tagsLimit";
   /** Request parameter. */
@@ -292,12 +292,12 @@ public class TaggerRequestHandler extends RequestHandlerBase {
 
   @Override
   public String getDescription() {
-    return "Processes input text to find stand-off named tags against a large corpus.";
+    return "Processes input text to find matching tokens stored in the index.";
   }
 
-  @Override
+  @Override //little value, esp. with git limitations
   public String getSource() {
-    return "$HeadURL$";
+    return null;
   }
 
 }
