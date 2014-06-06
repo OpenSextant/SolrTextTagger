@@ -32,6 +32,20 @@
   <!-- for postingsFormat="Memory" -->
   <codecFactory name="CodecFactory" class="solr.SchemaCodecFactory" />
 
+  <query>
+    <!-- illustrate putting in memory for warm-up -->
+    <listener event="firstSearcher" class="solr.QuerySenderListener">
+      <arr name="queries">
+        <lst><str name="q">name_tag:[* TO *]</str></lst>
+      </arr>
+    </listener>
+    <listener event="newSearcher" class="solr.QuerySenderListener">
+      <arr name="queries">
+        <lst><str name="q">name_tag:[* TO *]</str></lst>
+      </arr>
+    </listener>
+  </query>
+
   <requestHandler name="/select" class="solr.SearchHandler"></requestHandler>
 
   <requestHandler name="/tag" class="org.opensextant.solrtexttagger.TaggerRequestHandler">
