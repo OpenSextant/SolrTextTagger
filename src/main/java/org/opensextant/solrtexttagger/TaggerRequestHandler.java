@@ -23,6 +23,8 @@
 package org.opensextant.solrtexttagger;
 
 import com.google.common.io.CharStreams;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.output.StringBuilderWriter;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.core.StopFilterFactory;
@@ -50,14 +52,25 @@ import org.apache.solr.request.SolrQueryRequest;
 import org.apache.solr.response.SolrQueryResponse;
 import org.apache.solr.schema.FieldType;
 import org.apache.solr.schema.SchemaField;
-import org.apache.solr.search.*;
+import org.apache.solr.search.BitDocSet;
+import org.apache.solr.search.DocList;
+import org.apache.solr.search.DocSet;
+import org.apache.solr.search.DocSlice;
+import org.apache.solr.search.QParser;
+import org.apache.solr.search.SolrIndexSearcher;
+import org.apache.solr.search.SolrReturnFields;
+import org.apache.solr.search.SyntaxError;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Scans posted text, looking for matching strings in the Solr index.
@@ -133,7 +146,8 @@ public class TaggerRequestHandler extends RequestHandlerBase {
     if (addMatchText) {
       //read the input fully into a String buffer we'll use later to get
       // the match text, then replace the input with a reader wrapping the buffer.
-      bufferedInput = CharStreams.toString(reader);//(closes reader)
+      bufferedInput = CharStreams.toString(reader);
+      reader.close();
       reader = new StringReader(bufferedInput);
     } else {
       bufferedInput = null;//not used
