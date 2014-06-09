@@ -23,8 +23,6 @@
 package org.opensextant.solrtexttagger;
 
 import com.google.common.io.CharStreams;
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.io.output.StringBuilderWriter;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.core.StopFilterFactory;
