@@ -59,8 +59,8 @@ public class TaggerTest extends AbstractTaggerTest {
 
   @Test
   public void testFormat() throws Exception {
-    requestHandler = "/tagPartial";
-    overlaps = "NO_SUB";
+    baseParams.set("qt", "/tagPartial");
+    baseParams.set("overlaps", "NO_SUB");
     indexAndBuild();
 
     String rspStr = _testFormatRequest(false);
@@ -81,8 +81,8 @@ public class TaggerTest extends AbstractTaggerTest {
 
   @Test
   public void testFormatMatchText() throws Exception {
-    requestHandler = "/tagPartial";
-    overlaps = "NO_SUB";
+    baseParams.set("qt", "/tagPartial");
+    baseParams.set("overlaps", "NO_SUB");
     indexAndBuild();
 
     String rspStr = _testFormatRequest(true);
@@ -113,8 +113,8 @@ public class TaggerTest extends AbstractTaggerTest {
   @Test
   /** Partial matching, no sub-tags */
   public void testPartialMatching() throws Exception {
-    requestHandler = "/tagPartial";
-    overlaps = "NO_SUB";
+    baseParams.set("qt", "/tagPartial");
+    baseParams.set("overlaps", "NO_SUB");
     indexAndBuild();
 
     //these match nothing
@@ -150,7 +150,8 @@ public class TaggerTest extends AbstractTaggerTest {
   @Test
   /** whole matching, no sub-tags */
   public void testWholeMatching() throws Exception {
-    overlaps = "NO_SUB";
+    baseParams.set("qt", "/tag");
+    baseParams.set("overlaps", "NO_SUB");
     indexAndBuild();
 
     //these match nothing
@@ -191,7 +192,8 @@ public class TaggerTest extends AbstractTaggerTest {
   @Test
   /** whole matching, with sub-tags */
   public void testSubTags() throws Exception {
-    overlaps = "ALL";
+    baseParams.set("qt", "/tag");
+    baseParams.set("overlaps", "ALL");
     indexAndBuild();
 
     //these match nothing

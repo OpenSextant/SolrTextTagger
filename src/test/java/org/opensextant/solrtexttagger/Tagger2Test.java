@@ -37,14 +37,12 @@ public class Tagger2Test extends AbstractTaggerTest {
   @Override
   public void setUp() throws Exception {
     super.setUp();
-    this.overlaps = "LONGEST_DOMINANT_RIGHT";
+    baseParams.set("overlaps", "LONGEST_DOMINANT_RIGHT");
   }
 
   @Test
   /** whole matching, no sub-tags */
   public void testLongestDominantRight() throws Exception {
-    this.overlaps = "LONGEST_DOMINANT_RIGHT";//redundant but be clear
-
     buildNames("in", "San", "in San", "Francisco", "San Francisco",
         "San Francisco State College", "College of California",
         "Clayton", "Clayton North", "North Carolina");
@@ -82,7 +80,7 @@ public class Tagger2Test extends AbstractTaggerTest {
   /** Support for stopwords (posInc > 1);
    * discussion: https://github.com/OpenSextant/SolrTextTagger/issues/13 */
   public void testStopWords() throws Exception {
-    this.requestHandler = "/tagStop";//stop filter (pos inc enabled) index & query
+    baseParams.set("qt", "/tagStop");//stop filter (pos inc enabled) index & query
 
     String SOUTHOFWALES = "South of Wales";//'of' is stop word index time & query
     String ACITYA = "A City A";

@@ -29,7 +29,11 @@ import com.carrotsearch.randomizedtesting.generators.RandomStrings;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Random;
+import java.util.Set;
 
 /**
  * Randomly generate taggable text and verify via simple tag algorithm.
@@ -116,7 +120,7 @@ public class RandomizedTaggerTest extends AbstractTaggerTest {
 
   private void assertBruteForce(String input) throws Exception {
     assert input.matches(" .* ");
-    this.overlaps = "ALL";
+    baseParams.set("overlaps", "ALL");
 
     //loop through NAMES and find all tag offsets
     List<TestTag> testTags = new ArrayList<TestTag>();

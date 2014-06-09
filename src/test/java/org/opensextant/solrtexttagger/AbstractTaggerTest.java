@@ -44,7 +44,12 @@ import org.junit.runner.Description;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeSet;
 
 /**
  * @author David Smiley - dsmiley@mitre.org
@@ -61,8 +66,7 @@ public abstract class AbstractTaggerTest extends SolrTestCaseJ4 {
     }
   };
 
-  protected String requestHandler;//qt param
-  protected String overlaps;//param
+  protected final ModifiableSolrParams baseParams = new ModifiableSolrParams();
 
   //populated in buildNames; tested in assertTags
   protected static List<String> NAMES;
@@ -70,36 +74,8 @@ public abstract class AbstractTaggerTest extends SolrTestCaseJ4 {
   @Override
   public void setUp() throws Exception {
     super.setUp();
-    requestHandler = "/tag";
-    overlaps = null;
-  }
-
-  private void addMoreParams(ModifiableSolrParams params, String[] moreParams) {
-    if (moreParams != null) {
-      for (int i = 0; i < moreParams.length; i+= 2) {
-        params.add(moreParams[i], moreParams[i+1]);
-      }
-    }
-  }
-
-  private SolrQueryRequest req(SolrParams params) {
-    NamedList<Object> nl = params.toNamedList();
-    String[] strs = new String[nl.size()*2];
-    int i = 0;
-    for (Map.Entry entry : nl) {
-      strs[i++] = entry.getKey().toString();
-      strs[i++] = entry.getValue().toString();
-    }
-    return req(strs);
-  }
-
-  protected ModifiableSolrParams newParams(String... moreParams) {
-    ModifiableSolrParams params = new ModifiableSolrParams();
-    params.set(CommonParams.QT, requestHandler);
-    assert this.overlaps != null;
-    params.set("overlaps", this.overlaps);
-    addMoreParams(params, moreParams);
-    return params;
+    baseParams.clear();
+    baseParams.set(CommonParams.QT, "/tag");
   }
 
   protected void assertTags(String doc, String... tags) throws Exception {
@@ -145,7 +121,7 @@ public abstract class AbstractTaggerTest extends SolrTestCaseJ4 {
   protected void assertTags(SolrQueryRequest req, TestTag... aTags) throws Exception {
     try {
       Arrays.sort(aTags);
-      SolrQueryResponse rsp = h.queryAndResponse(req.getParams().get(CommonParams.QT, requestHandler), req);
+      SolrQueryResponse rsp = h.queryAndResponse(req.getParams().get(CommonParams.QT), req);
       NamedList rspValues = rsp.getValues();
 
       //build matchingNames map from matchingDocs doc list in response
@@ -191,7 +167,7 @@ public abstract class AbstractTaggerTest extends SolrTestCaseJ4 {
   /** REMEMBER to close() the result req object. */
   protected SolrQueryRequest reqDoc(String doc, String... moreParams) {
     log.debug("Test doc: "+doc);
-    ModifiableSolrParams params = newParams(moreParams);
+    SolrParams params = SolrParams.wrapDefaults(params(moreParams), baseParams);
     SolrQueryRequestBase req = new SolrQueryRequestBase(h.getCore(), params) {};
     Iterable<ContentStream> stream = Collections.singleton((ContentStream)new ContentStreamBase.StringStream(doc));
     req.setContentStreams(stream);

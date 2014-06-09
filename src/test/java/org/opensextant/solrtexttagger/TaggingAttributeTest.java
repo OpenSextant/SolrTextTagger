@@ -47,7 +47,7 @@ public class TaggingAttributeTest extends AbstractTaggerTest {
   public void testTaggingAttribute() throws Exception {
     // this test is based on the longest dominant right test, so we use the
     // the same TagClusterReducer setting
-    this.overlaps = "LONGEST_DOMINANT_RIGHT";
+    baseParams.set("overlaps", "LONGEST_DOMINANT_RIGHT");
 
     buildNames("in", "San", "in San", "Francisco", "San Francisco",
         "San Francisco State College", "College of California",
