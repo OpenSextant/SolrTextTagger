@@ -102,19 +102,8 @@ public class TaggerRequestHandler extends RequestHandlerBase {
     if (indexedField == null)
       throw new RuntimeException("required param 'field'");
 
-    final TagClusterReducer tagClusterReducer;
-    String overlaps = req.getParams().get(OVERLAPS);
-    if (overlaps == null || overlaps.equals("NO_SUB")) {
-      tagClusterReducer = TagClusterReducer.NO_SUB;
-    } else if (overlaps.equals("ALL")) {
-      tagClusterReducer = TagClusterReducer.ALL;
-    } else if (overlaps.equals("LONGEST_DOMINANT_RIGHT")) {
-      tagClusterReducer = TagClusterReducer.LONGEST_DOMINANT_RIGHT;
-    } else {
-      throw new SolrException(SolrException.ErrorCode.BAD_REQUEST,
-          "unknown tag overlap mode: "+overlaps);
-    }
-
+    final TagClusterReducer tagClusterReducer =
+            chooseTagClusterReducer(req.getParams().get(OVERLAPS));
     final int rows = req.getParams().getInt(CommonParams.ROWS, 10000);
     final int tagsLimit = req.getParams().getInt(TAGS_LIMIT, 1000);
     final boolean addMatchText = req.getParams().getBool(MATCH_TEXT, false);
@@ -244,6 +233,11 @@ public class TaggerRequestHandler extends RequestHandlerBase {
 
     rsp.setReturnFields(new SolrReturnFields( req ));
 
+    //Solr's standard name for matching docs in response
+    rsp.add("response", getDocList(rows, matchDocIdsBS));
+  }
+
+  private DocList getDocList(int rows, OpenBitSet matchDocIdsBS) throws IOException {
     //Now we must supply a Solr DocList and add it to the response.
     //  Typically this is gotten via a SolrIndexSearcher.search(), but in this case we
     //  know exactly what documents to return, the order doesn't matter nor does
@@ -257,8 +251,22 @@ public class TaggerRequestHandler extends RequestHandlerBase {
     for (int i = 0; i < docIds.length; i++) {
       docIds[i] = docIdIter.nextDoc();
     }
-    DocList docs = new DocSlice(0, docIds.length, docIds, null, matchDocs, 1f);
-    rsp.add("response", docs);//Solr's standard name for matching docs in response
+    return new DocSlice(0, docIds.length, docIds, null, matchDocs, 1f);
+  }
+
+  private TagClusterReducer chooseTagClusterReducer(String overlaps) {
+    TagClusterReducer tagClusterReducer;
+    if (overlaps == null || overlaps.equals("NO_SUB")) {
+      tagClusterReducer = TagClusterReducer.NO_SUB;
+    } else if (overlaps.equals("ALL")) {
+      tagClusterReducer = TagClusterReducer.ALL;
+    } else if (overlaps.equals("LONGEST_DOMINANT_RIGHT")) {
+      tagClusterReducer = TagClusterReducer.LONGEST_DOMINANT_RIGHT;
+    } else {
+      throw new SolrException(SolrException.ErrorCode.BAD_REQUEST,
+          "unknown tag overlap mode: "+overlaps);
+    }
+    return tagClusterReducer;
   }
 
   /**
