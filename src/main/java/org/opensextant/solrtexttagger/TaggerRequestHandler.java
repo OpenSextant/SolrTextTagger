@@ -64,7 +64,6 @@ import org.slf4j.LoggerFactory;
 import javax.xml.stream.XMLStreamException;
 import java.io.IOException;
 import java.io.Reader;
-import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -126,37 +125,37 @@ public class TaggerRequestHandler extends RequestHandlerBase {
     final boolean xmlOffsetAdjust = req.getParams().getBool(XML_OFFSET_ADJUST, false);
 
     //--Get posted data
-    Reader reader = null;
+    Reader inputReader = null;
     Iterable<ContentStream> streams = req.getContentStreams();
     if (streams != null) {
       Iterator<ContentStream> iter = streams.iterator();
       if (iter.hasNext()) {
-        reader = iter.next().getReader();
+        inputReader = iter.next().getReader();
       }
       if (iter.hasNext()) {
         throw new SolrException(SolrException.ErrorCode.BAD_REQUEST,
             getClass().getSimpleName()+" does not support multiple ContentStreams");
       }
     }
-    if (reader == null) {
+    if (inputReader == null) {
       throw new SolrException(SolrException.ErrorCode.BAD_REQUEST,
           getClass().getSimpleName()+" requires text to be POSTed to it");
     }
-    final String bufferedInput;
+    final String inputString;//only populated if needed
     if (addMatchText || xmlOffsetAdjust) {
       //Read the input fully into a String buffer that we'll need later,
       // then replace the input with a reader wrapping the buffer.
-      bufferedInput = CharStreams.toString(reader);
-      reader.close();
-      reader = new StringReader(bufferedInput);
+      inputString = CharStreams.toString(inputReader);
+      inputReader.close();
+      inputReader = null;//not used;
     } else {
-      bufferedInput = null;//not used
+      inputString = null;//not used
     }
 
     final XmlOffsetCorrector xmlOffsetCorrector;
     if (xmlOffsetAdjust) {
       try {
-        xmlOffsetCorrector = new XmlOffsetCorrector(bufferedInput);
+        xmlOffsetCorrector = new XmlOffsetCorrector(inputString);
       } catch (XMLStreamException e) {
         throw new SolrException(SolrException.ErrorCode.BAD_REQUEST,
                 "Expecting XML but wasn't: " + e.toString(), e);
@@ -171,7 +170,8 @@ public class TaggerRequestHandler extends RequestHandlerBase {
 
     try {
       Analyzer analyzer = req.getSchema().getField(indexedField).getType().getQueryAnalyzer();
-      TokenStream tokenStream = analyzer.tokenStream("", reader);//TODO consider string variant
+      TokenStream tokenStream = inputString != null ?
+          analyzer.tokenStream("", inputString) : analyzer.tokenStream("", inputReader);
       try {
         Terms terms = searcher.getAtomicReader().terms(indexedField);
         if (terms == null)
@@ -199,7 +199,7 @@ public class TaggerRequestHandler extends RequestHandlerBase {
             tag.add("startOffset", startOffset);
             tag.add("endOffset", endOffset);
             if (addMatchText)
-              tag.add("matchText", bufferedInput.substring(startOffset, endOffset));
+              tag.add("matchText", inputString.substring(startOffset, endOffset));
             //below caches, and also flags matchDocIdsBS
             tag.add("ids", lookupSchemaDocIds(docIdsKey));
             tags.add(tag);
@@ -236,7 +236,8 @@ public class TaggerRequestHandler extends RequestHandlerBase {
         tokenStream.close();
       }
     } finally {
-      reader.close();
+      if (inputReader != null)
+        inputReader.close();
     }
     rsp.add("tagsCount",tags.size());
     rsp.add("tags", tags);
