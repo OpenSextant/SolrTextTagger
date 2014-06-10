@@ -105,7 +105,7 @@ The tagger request-time parameters are:
  * overlaps: choose the algorithm to determine which overlapping tags should be
  retained, versus being pruned away.  See below...
  * matchText: A boolean indicating whether to return the matched text in the tag
- response.
+ response.  This will trigger the tagger to fully buffer the input before tagging.
  * tagsLimit: The maximum number of tags to return in the response.  Tagging
  effectively stops after this point.  By default this is 1000.
  * rows: Solr's standard param to say the maximum number of documents to return,
@@ -120,6 +120,11 @@ The tagger request-time parameters are:
  a StopWordFilter. By default the indexed analysis chain is checked for the presence of a
  StopWordFilter and if found then ignoreStopWords is true if unspecified. You probably shouldn't
  have a StopWordFilter configured and probably won't need to set this param either.
+ * xmlOffsetAdjust: A boolean indicating that the input is XML and furthermore that the offsets of
+ returned tags should be adjusted as necessary to allow for the client to insert an open and closing
+ element at the positions. If it isn't possible to do so then the tag will be omitted. You are
+ expected to configure HTMLStripCharFilter in the schema when using this option.
+ This will trigger the tagger to fully buffer the input before tagging.
  * fl: Solr's standard param for listing the fields to return.
  * Most other standard parameters for working with Solr response formatting:
  echoParams, wt, indent, etc.

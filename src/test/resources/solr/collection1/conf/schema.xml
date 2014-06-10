@@ -31,10 +31,12 @@
     <field name="name_tag" type="tag" stored="false"/>
     <field name="name_tagStop" type="tagStop" stored="false"/>
     <field name="name_tagPartial" type="tagPartial" stored="false"/>
+    <field name="name_tagXml" type="tagXml" stored="false"/>
 
     <copyField source="name" dest="name_tag"/>
     <copyField source="name" dest="name_tagStop"/>
     <copyField source="name" dest="name_tagPartial"/>
+    <copyField source="name" dest="name_tagXml"/>
 
     <dynamicField name="*" type="string" indexed="true" stored="true"/>
   </fields>
@@ -98,6 +100,24 @@
         <filter class="solr.LowerCaseFilterFactory"/>
       </analyzer>
     </fieldType>
+
+    <fieldType name="tagXml" class="solr.TextField" positionIncrementGap="100"
+               postingsFormat="Memory" omitTermFreqAndPositions="true" omitNorms="true">
+      <analyzer type="index">
+        <tokenizer class="solr.StandardTokenizerFactory" />
+        <filter class="solr.ASCIIFoldingFilterFactory"/>
+        <filter class="solr.LowerCaseFilterFactory"/>
+
+        <filter class="org.opensextant.solrtexttagger.ConcatenateFilterFactory" />
+      </analyzer>
+      <analyzer type="query">
+        <charFilter class="solr.HTMLStripCharFilterFactory" /><!-- ADDED THIS! -->
+        <tokenizer class="solr.StandardTokenizerFactory" />
+        <filter class="solr.ASCIIFoldingFilterFactory"/>
+        <filter class="solr.LowerCaseFilterFactory"/>
+      </analyzer>
+    </fieldType>
+
 
     <fieldType name="text_general" class="solr.TextField" positionIncrementGap="100">
       <analyzer type="index">

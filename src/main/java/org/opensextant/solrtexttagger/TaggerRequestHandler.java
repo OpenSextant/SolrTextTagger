@@ -61,6 +61,7 @@ import org.apache.solr.search.SyntaxError;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.xml.stream.XMLStreamException;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
@@ -88,6 +89,8 @@ public class TaggerRequestHandler extends RequestHandlerBase {
   public static final String SKIP_ALT_TOKENS = "skipAltTokens";
   /** Request parameter. */
   public static final String IGNORE_STOPWORDS = "ignoreStopwords";
+  /** Request parameter. */
+  public static final String XML_OFFSET_ADJUST = "xmlOffsetAdjust";
 
   private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -120,8 +123,7 @@ public class TaggerRequestHandler extends RequestHandlerBase {
     final boolean skipAltTokens = req.getParams().getBool(SKIP_ALT_TOKENS, false);
     final boolean ignoreStopWords = req.getParams().getBool(IGNORE_STOPWORDS,
             fieldHasIndexedStopFilter(indexedField, req));
-
-    final SolrIndexSearcher searcher = req.getSearcher();
+    final boolean xmlOffsetAdjust = req.getParams().getBool(XML_OFFSET_ADJUST, false);
 
     //--Get posted data
     Reader reader = null;
@@ -141,9 +143,9 @@ public class TaggerRequestHandler extends RequestHandlerBase {
           getClass().getSimpleName()+" requires text to be POSTed to it");
     }
     final String bufferedInput;
-    if (addMatchText) {
-      //read the input fully into a String buffer we'll use later to get
-      // the match text, then replace the input with a reader wrapping the buffer.
+    if (addMatchText || xmlOffsetAdjust) {
+      //Read the input fully into a String buffer that we'll need later,
+      // then replace the input with a reader wrapping the buffer.
       bufferedInput = CharStreams.toString(reader);
       reader.close();
       reader = new StringReader(bufferedInput);
@@ -151,12 +153,25 @@ public class TaggerRequestHandler extends RequestHandlerBase {
       bufferedInput = null;//not used
     }
 
+    final XmlOffsetCorrector xmlOffsetCorrector;
+    if (xmlOffsetAdjust) {
+      try {
+        xmlOffsetCorrector = new XmlOffsetCorrector(bufferedInput);
+      } catch (XMLStreamException e) {
+        throw new SolrException(SolrException.ErrorCode.BAD_REQUEST,
+                "Expecting XML but wasn't: " + e.toString(), e);
+      }
+    } else {
+      xmlOffsetCorrector = null;
+    }
+
+    final SolrIndexSearcher searcher = req.getSearcher();
     final OpenBitSet matchDocIdsBS = new OpenBitSet(searcher.maxDoc());
     final List tags = new ArrayList(2000);
 
     try {
       Analyzer analyzer = req.getSchema().getField(indexedField).getType().getQueryAnalyzer();
-      TokenStream tokenStream = analyzer.tokenStream("", reader);
+      TokenStream tokenStream = analyzer.tokenStream("", reader);//TODO consider string variant
       try {
         Terms terms = searcher.getAtomicReader().terms(indexedField);
         if (terms == null)
@@ -169,6 +184,17 @@ public class TaggerRequestHandler extends RequestHandlerBase {
           protected void tagCallback(int startOffset, int endOffset, Object docIdsKey) {
             if (tags.size() >= tagsLimit)
               return;
+            if (xmlOffsetCorrector != null) {
+              int[] offsetPair = xmlOffsetCorrector.correctPair(startOffset, endOffset);
+              if (offsetPair == null) {
+                log.debug("Discarded offsets [{}, {}] because couldn't balance XML.",
+                        startOffset, endOffset);
+                return;
+              }
+              startOffset = offsetPair[0];
+              endOffset = offsetPair[1];
+            }
+
             NamedList tag = new NamedList();
             tag.add("startOffset", startOffset);
             tag.add("endOffset", endOffset);

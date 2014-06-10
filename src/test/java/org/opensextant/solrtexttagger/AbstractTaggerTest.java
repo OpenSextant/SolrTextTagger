@@ -44,6 +44,7 @@ import org.junit.runner.Description;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -117,51 +118,55 @@ public abstract class AbstractTaggerTest extends SolrTestCaseJ4 {
   }
 
   /** Asserts the tags.  Will call req.close(). */
-  @SuppressWarnings("unchecked")
-  protected void assertTags(SolrQueryRequest req, TestTag... aTags) throws Exception {
+  protected void assertTags(SolrQueryRequest req, TestTag... eTags) throws Exception {
     try {
-      Arrays.sort(aTags);
       SolrQueryResponse rsp = h.queryAndResponse(req.getParams().get(CommonParams.QT), req);
-      NamedList rspValues = rsp.getValues();
+      TestTag[] aTags = pullTagsFromResponse(req, rsp);
 
-      //build matchingNames map from matchingDocs doc list in response
-      Map<String, String> matchingNames = new HashMap<String, String>();
-      SolrIndexSearcher searcher = req.getSearcher();
-      DocList docList = (DocList) rspValues.get("response");
-      DocIterator iter = docList.iterator();
-      while (iter.hasNext()) {
-        int docId = iter.next();
-        Document doc = searcher.doc(docId);
-        String id = doc.getField("id").stringValue();
-        String name = lookupByName(doc.get("name"));
-        assertEquals("looking for "+name, NAMES.indexOf(name)+"", id);
-        matchingNames.put(id, name);
-      }
-
-      //build TestTag[] mTags from response then assert equals
-      List<NamedList> mTagsList = (List<NamedList>) rspValues.get("tags");
-      TestTag[] mTags = new TestTag[mTagsList.size()];
-      int mt_i = 0;
-      for (NamedList map : mTagsList) {
-        List<String> foundIds = (List<String>) map.get("ids");
-        for (String id  : foundIds) {
-          mTags[mt_i++] = new TestTag(
-              ((Number)map.get("startOffset")).intValue(),
-              ((Number)map.get("endOffset")).intValue(),
-              null,
-              matchingNames.get(id));
-        }
-      }
       String message;
-      if (mTags.length > 10)
+      if (aTags.length > 10)
         message = null;
       else
-        message = Arrays.asList(mTags).toString();
-      assertSortedArrayEquals(message, aTags, mTags);
+        message = Arrays.asList(aTags).toString();
+      Arrays.sort(eTags);
+      assertSortedArrayEquals(message, eTags, aTags);
 
     } finally {
       req.close();
     }
+  }
+
+  @SuppressWarnings("unchecked")
+  protected TestTag[] pullTagsFromResponse(SolrQueryRequest req, SolrQueryResponse rsp ) throws IOException {
+    NamedList rspValues = rsp.getValues();
+    Map<String, String> matchingNames = new HashMap<String, String>();
+    SolrIndexSearcher searcher = req.getSearcher();
+    DocList docList = (DocList) rspValues.get("response");
+    DocIterator iter = docList.iterator();
+    while (iter.hasNext()) {
+      int docId = iter.next();
+      Document doc = searcher.doc(docId);
+      String id = doc.getField("id").stringValue();
+      String name = lookupByName(doc.get("name"));
+      assertEquals("looking for "+name, NAMES.indexOf(name)+"", id);
+      matchingNames.put(id, name);
+    }
+
+    //build TestTag[] aTags from response ('a' is actual)
+    List<NamedList> mTagsList = (List<NamedList>) rspValues.get("tags");
+    TestTag[] aTags = new TestTag[mTagsList.size()];
+    int mt_i = 0;
+    for (NamedList map : mTagsList) {
+      List<String> foundIds = (List<String>) map.get("ids");
+      for (String id  : foundIds) {
+        aTags[mt_i++] = new TestTag(
+            ((Number)map.get("startOffset")).intValue(),
+            ((Number)map.get("endOffset")).intValue(),
+            null,
+            matchingNames.get(id));
+      }
+    }
+    return aTags;
   }
 
   /** REMEMBER to close() the result req object. */

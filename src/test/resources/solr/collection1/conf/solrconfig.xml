@@ -62,6 +62,10 @@
     <str name="fq">NOT name:(of the)</str><!-- filter out -->
   </requestHandler>
 
+  <requestHandler name="/tagXml" class="org.opensextant.solrtexttagger.TaggerRequestHandler">
+    <str name="field">name_tagXml</str>
+  </requestHandler>
+
   <requestHandler name="/update" class="solr.UpdateRequestHandler" />
 
 </config>
