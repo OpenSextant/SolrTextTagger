@@ -126,7 +126,7 @@ public class TaggerRequestHandler extends RequestHandlerBase {
         throw new SolrException(SolrException.ErrorCode.BAD_REQUEST,
             getClass().getSimpleName()+" does not support multiple ContentStreams");
       }
-    }Rev
+    }
     if (inputReader == null) {
       throw new SolrException(SolrException.ErrorCode.BAD_REQUEST,
           getClass().getSimpleName()+" requires text to be POSTed to it");
