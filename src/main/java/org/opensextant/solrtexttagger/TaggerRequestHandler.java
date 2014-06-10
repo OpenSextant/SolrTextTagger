@@ -64,6 +64,7 @@ import org.slf4j.LoggerFactory;
 import javax.xml.stream.XMLStreamException;
 import java.io.IOException;
 import java.io.Reader;
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -125,7 +126,7 @@ public class TaggerRequestHandler extends RequestHandlerBase {
         throw new SolrException(SolrException.ErrorCode.BAD_REQUEST,
             getClass().getSimpleName()+" does not support multiple ContentStreams");
       }
-    }
+    }Rev
     if (inputReader == null) {
       throw new SolrException(SolrException.ErrorCode.BAD_REQUEST,
           getClass().getSimpleName()+" requires text to be POSTed to it");
@@ -136,7 +137,7 @@ public class TaggerRequestHandler extends RequestHandlerBase {
       // then replace the input with a reader wrapping the buffer.
       inputString = CharStreams.toString(inputReader);
       inputReader.close();
-      inputReader = null;//not used;
+      inputReader = new StringReader(inputString);
     } else {
       inputString = null;//not used
     }
@@ -159,8 +160,7 @@ public class TaggerRequestHandler extends RequestHandlerBase {
 
     try {
       Analyzer analyzer = req.getSchema().getField(indexedField).getType().getQueryAnalyzer();
-      TokenStream tokenStream = inputString != null ?
-          analyzer.tokenStream("", inputString) : analyzer.tokenStream("", inputReader);
+      TokenStream tokenStream = analyzer.tokenStream("", inputReader);
       try {
         Terms terms = searcher.getAtomicReader().terms(indexedField);
         if (terms == null)
@@ -225,8 +225,7 @@ public class TaggerRequestHandler extends RequestHandlerBase {
         tokenStream.close();
       }
     } finally {
-      if (inputReader != null)
-        inputReader.close();
+      inputReader.close();
     }
     rsp.add("tagsCount",tags.size());
     rsp.add("tags", tags);
