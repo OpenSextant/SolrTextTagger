@@ -71,7 +71,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <!-- tests pass with many other versions; see .travis.yml.  Keep default at the last Solr
     version that supported JDK 1.6 (Solr v4.7), even though we work with higher.  -->
-    <solr.version>4.7.2</solr.version>
+    <solr.version>4.7.1</solr.version>
   </properties>
 
   <prerequisites>
@@ -117,6 +117,23 @@
       <groupId>org.apache.lucene</groupId>
       <artifactId>lucene-core</artifactId>
       <version>${solr.version}</version>
+    </dependency>
+
+    <!-- Woodstox is only used for xmlOffsetAdjust=true option.
+    Solr includes it with runtime scope.  We need compile scope. -->
+    <dependency>
+      <groupId>org.codehaus.woodstox</groupId>
+      <artifactId>wstx-asl</artifactId>
+      <version>3.2.7</version>
+      <optional>true</optional>
+    </dependency>
+    <!-- Declared because we use it (xmlOffsetAdjust only)
+    and earlier Solr versions didn't include it. -->
+    <dependency>
+      <groupId>com.carrotsearch</groupId>
+      <artifactId>hppc</artifactId>
+      <version>0.5.2</version>
+      <!-- Not marking optional because recent Solr versions require it. -->
     </dependency>
 
     <!-- LOGGING -->
