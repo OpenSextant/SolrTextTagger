@@ -91,6 +91,8 @@ public class TaggerRequestHandler extends RequestHandlerBase {
   public static final String IGNORE_STOPWORDS = "ignoreStopwords";
   /** Request parameter. */
   public static final String XML_OFFSET_ADJUST = "xmlOffsetAdjust";
+  /** Request parameter. */
+  public static final String HTML_OFFSET_ADJUST = "htmlOffsetAdjust";
 
   private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -112,6 +114,7 @@ public class TaggerRequestHandler extends RequestHandlerBase {
     final boolean skipAltTokens = req.getParams().getBool(SKIP_ALT_TOKENS, false);
     final boolean ignoreStopWords = req.getParams().getBool(IGNORE_STOPWORDS,
             fieldHasIndexedStopFilter(indexedField, req));
+    final boolean htmlOffsetAdjust = req.getParams().getBool(HTML_OFFSET_ADJUST, false);
     final boolean xmlOffsetAdjust = req.getParams().getBool(XML_OFFSET_ADJUST, false);
 
     //--Get posted data
@@ -132,7 +135,7 @@ public class TaggerRequestHandler extends RequestHandlerBase {
           getClass().getSimpleName()+" requires text to be POSTed to it");
     }
     final String inputString;//only populated if needed
-    if (addMatchText || xmlOffsetAdjust) {
+    if (addMatchText || xmlOffsetAdjust || htmlOffsetAdjust) {
       //Read the input fully into a String buffer that we'll need later,
       // then replace the input with a reader wrapping the buffer.
       inputString = CharStreams.toString(inputReader);
@@ -142,18 +145,8 @@ public class TaggerRequestHandler extends RequestHandlerBase {
       inputString = null;//not used
     }
 
-    final XmlOffsetCorrector xmlOffsetCorrector;
-    if (xmlOffsetAdjust) {
-      try {
-        xmlOffsetCorrector = new XmlOffsetCorrector(inputString);
-      } catch (XMLStreamException e) {
-        throw new SolrException(SolrException.ErrorCode.BAD_REQUEST,
-                "Expecting XML but wasn't: " + e.toString(), e);
-      }
-    } else {
-      xmlOffsetCorrector = null;
-    }
-
+    final OffsetCorrector offsetCorrector =
+            initOffsetCorrector(htmlOffsetAdjust, xmlOffsetAdjust, inputString);
     final SolrIndexSearcher searcher = req.getSearcher();
     final OpenBitSet matchDocIdsBS = new OpenBitSet(searcher.maxDoc());
     final List tags = new ArrayList(2000);
@@ -173,8 +166,8 @@ public class TaggerRequestHandler extends RequestHandlerBase {
           protected void tagCallback(int startOffset, int endOffset, Object docIdsKey) {
             if (tags.size() >= tagsLimit)
               return;
-            if (xmlOffsetCorrector != null) {
-              int[] offsetPair = xmlOffsetCorrector.correctPair(startOffset, endOffset);
+            if (offsetCorrector != null) {
+              int[] offsetPair = offsetCorrector.correctPair(startOffset, endOffset);
               if (offsetPair == null) {
                 log.debug("Discarded offsets [{}, {}] because couldn't balance XML.",
                         startOffset, endOffset);
@@ -234,6 +227,28 @@ public class TaggerRequestHandler extends RequestHandlerBase {
 
     //Solr's standard name for matching docs in response
     rsp.add("response", getDocList(rows, matchDocIdsBS));
+  }
+
+  private OffsetCorrector initOffsetCorrector(boolean htmlOffsetAdjust, boolean xmlOffsetAdjust, String inputString) {
+    OffsetCorrector offsetCorrector;
+    if (htmlOffsetAdjust) {
+      try {
+        offsetCorrector = new HtmlOffsetCorrector(inputString);
+      } catch (Exception e) {
+        throw new SolrException(SolrException.ErrorCode.BAD_REQUEST,
+                "Expecting HTML but wasn't: " + e.toString(), e);
+      }
+    } else if (xmlOffsetAdjust) {
+      try {
+        offsetCorrector = new XmlOffsetCorrector(inputString);
+      } catch (XMLStreamException e) {
+        throw new SolrException(SolrException.ErrorCode.BAD_REQUEST,
+                "Expecting XML but wasn't: " + e.toString(), e);
+      }
+    } else {
+      offsetCorrector = null;
+    }
+    return offsetCorrector;
   }
 
   private DocList getDocList(int rows, OpenBitSet matchDocIdsBS) throws IOException {

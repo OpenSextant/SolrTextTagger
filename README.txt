@@ -125,6 +125,10 @@ The tagger request-time parameters are:
  element at the positions. If it isn't possible to do so then the tag will be omitted. You are
  expected to configure HTMLStripCharFilter in the schema when using this option.
  This will trigger the tagger to fully buffer the input before tagging.
+ * htmlOffsetAdjust: Similar to xmlOffsetAdjust except for HTML content that may have various issues
+ that would never work with an XML parser. There needn't be a top level element, and some tags
+ are known to self-close (e.g. BR). The tagger uses the Jericho HTML Parser for this feature
+ (dual LGPL & EPL licensed).
  * fl: Solr's standard param for listing the fields to return.
  * Most other standard parameters for working with Solr response formatting:
  echoParams, wt, indent, etc.

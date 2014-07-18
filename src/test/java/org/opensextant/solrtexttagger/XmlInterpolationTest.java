@@ -51,6 +51,7 @@ public class XmlInterpolationTest extends AbstractTaggerTest {
     buildNames("start end");
 
     assertXmlTag("<doc>before start <!-- c --> end after</doc>", true);
+    assertXmlTag("<doc>before start <br/> end after</doc>", true);
     assertXmlTag("<doc>before <em>start</em> <b>end</b> after</doc>", true);
     assertXmlTag("<doc>before <em>start</em> end after</doc>", true);
     assertXmlTag("<doc>before <b> <em>start</em> </b> end after</doc>", true);
@@ -58,6 +59,8 @@ public class XmlInterpolationTest extends AbstractTaggerTest {
 
     assertXmlTag("<doc><p>before start</p> end after</doc>", false);
     assertXmlTag("<doc>before start <p>end after</p> </doc>", false);
+
+    assertXmlTag("<doc>before <em a='A' b='B'>start</em> <b a='A' b='B'>end</b> after</doc>", true);
   }
 
   @Test(expected = SolrException.class)
@@ -70,7 +73,7 @@ public class XmlInterpolationTest extends AbstractTaggerTest {
     validateXml("foo");
   }
 
-  private void assertXmlTag(String docText, boolean expected) throws Exception {
+  protected void assertXmlTag(String docText, boolean expected) throws Exception {
     final SolrQueryRequest req = reqDoc(docText);
     try {
       final SolrQueryResponse rsp = h.queryAndResponse(req.getParams().get("qt"), req);
@@ -87,8 +90,8 @@ public class XmlInterpolationTest extends AbstractTaggerTest {
     }
   }
 
-  private void validateXml(String xml) throws Exception {
-    // the "parse" method also validates XML, will throw an exception if misformatted
+  protected void validateXml(String xml) throws Exception {
+    // the "parse" method also validates XML, will throw an exception if mis-formatted
     xmlDocBuilder.parse(new InputSource(new StringReader(xml)));
   }
 
