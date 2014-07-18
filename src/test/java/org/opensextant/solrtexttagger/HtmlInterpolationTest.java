@@ -31,6 +31,9 @@ public class HtmlInterpolationTest extends XmlInterpolationTest {
 
     assertXmlTag("<doc>before start <br> end after</doc>", true);//br is assumed empty
 
-    //assertXmlTag("start end", true);//no wrapping tags TODO
+    //no wrapping tags:
+    assertXmlTag("start end", true);
+    assertXmlTag("start end <em>other text</em>", true);
+    assertXmlTag("<em>other text</em> start end", true);
   }
 }

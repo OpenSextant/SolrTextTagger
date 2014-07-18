@@ -29,8 +29,14 @@ public class HtmlOffsetCorrector extends OffsetCorrector {
   protected HtmlOffsetCorrector(String docText) {
     super(docText);
 
-    int tagCounter = 0;//root tag, and counting
-    int thisTag = -1;
+    int tagCounter = 1;//document implicit tag, and counting
+    int thisTag = 0;//document implicit tag
+
+    tagInfo.add(-1);//parent
+    tagInfo.add(-1, 0);//StartTag
+    tagInfo.add(docText.length(), docText.length()+1);//EndTag
+    parentChangeOffsets.add(-1);
+    parentChangeIds.add(thisTag);
 
     StreamedSource source = new StreamedSource(docText);
     source.setCoalescing(false);
@@ -61,6 +67,9 @@ public class HtmlOffsetCorrector extends OffsetCorrector {
         }
       }
       //else we don't care
-    }
+    }//for segment
+
+    parentChangeOffsets.add(docText.length()+1);
+    parentChangeIds.add(-1);
   }
 }
