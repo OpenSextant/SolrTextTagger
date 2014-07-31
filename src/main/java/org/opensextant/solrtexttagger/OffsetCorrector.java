@@ -35,21 +35,26 @@ public abstract class OffsetCorrector {
 
   protected final int[] offsetPair = new int[] { -1, -1};//non-thread-safe state
 
+  /** Disjoint start & end span offsets (inclusive) of non-taggable sections. Null if none. */
+  protected final IntArrayList nonTaggableOffsets;
+
   /**
    * Initialize based on the document text.
    * @param docText non-null structured content.
+   * @param hasNonTaggable if there may be "non-taggable" tags to track
    */
-  protected OffsetCorrector(String docText) {
+  protected OffsetCorrector(String docText, boolean hasNonTaggable) {
     this.docText = docText;
     final int guessNumElements = Math.max(docText.length() / 20, 4);
 
     tagInfo = new IntArrayList(guessNumElements * 5);
     parentChangeOffsets = new IntArrayList(guessNumElements * 2);
     parentChangeIds = new IntArrayList(guessNumElements * 2);
+    nonTaggableOffsets = hasNonTaggable ? new IntArrayList(guessNumElements / 5) : null;
   }
 
   /** Corrects the start and end offset pair. It will return null if it can't
-   * due to a failure to keep the offsets balance-able.
+   * due to a failure to keep the offsets balance-able, or if it spans "non-taggable" tags.
    * The start (left) offset is pulled left as needed over whitespace and opening tags. The end
    * (right) offset is pulled right as needed over whitespace and closing tags. It's returned as
    * a 2-element array.
@@ -57,10 +62,12 @@ public abstract class OffsetCorrector {
    */
   public int[] correctPair(int leftOffset, int rightOffset) {
     rightOffset = correctEndOffsetForCloseElement(rightOffset);
+    if (spansNonTaggable(leftOffset, rightOffset))
+      return null;
 
     int startTag = lookupTag(leftOffset);
     //offsetPair[0] = Math.max(offsetPair[0], getOpenStartOff(startTag));
-    int endTag = lookupTag(rightOffset);
+    int endTag = lookupTag(rightOffset-1);
     //offsetPair[1] = Math.min(offsetPair[1], getCloseStartOff(endTag));
 
     // Find the ancestor tag enclosing offsetPair.  And bump out left offset along the way.
@@ -87,7 +94,7 @@ public abstract class OffsetCorrector {
     return offsetPair;
   }
 
-  /** Correct endOffset for closing element at the right side.  E.g. offsetPair might point to:
+  /** Correct endOffset for adjacent element at the right side.  E.g. offsetPair might point to:
    * <pre>
    *   foo&lt;/tag&gt;
    * </pre>
@@ -127,5 +134,23 @@ public abstract class OffsetCorrector {
     if (idx < 0)
       idx = (-idx - 1) - 1;//round down
     return parentChangeIds.get(idx);
+  }
+
+  protected boolean spansNonTaggable(int startOff, int endOff) {
+    if (nonTaggableOffsets == null)
+      return false;
+    int idx = Arrays.binarySearch(nonTaggableOffsets.buffer, 0, nonTaggableOffsets.size(), startOff);
+    //if tag start coincides with first or last char of non-taggable span then result is true.
+    // (probably never happens since those characters are actual element markup)
+    if (idx >= 0)
+      return true;
+    idx = -idx - 1;//modify for where we would insert
+    //if idx is odd then our span intersects a non-taggable span; return true
+    if ((idx & 1) == 1)
+      return true;
+    //it's non-taggable if the next non-taggable start span is before our endOff
+    if (idx == nonTaggableOffsets.size())
+      return false;
+    return nonTaggableOffsets.get(idx) < endOff;
   }
 }

@@ -34,6 +34,20 @@ public class HtmlInterpolationTest extends XmlInterpolationTest {
     //no wrapping tags:
     assertXmlTag("start end", true);
     assertXmlTag("start end <em>other text</em>", true);
+    assertXmlTag("start end<em> other text</em>", true);
     assertXmlTag("<em>other text</em> start end", true);
+  }
+
+  @Test
+  public void testHtmlNonTaggable() throws Exception {
+    baseParams.set("nonTaggableTags","a" + (random().nextBoolean() ? ",sub" : ""));
+    buildNames("start end");
+
+    assertXmlTag("start end", true);
+    assertXmlTag("start <a>end</a>", false);
+    assertXmlTag("<a>start</a> end", false);
+    assertXmlTag("<doc><a>before </a>start <br> end<a> after</a></doc>", true);//adjacent
+    assertXmlTag("<doc><a>before <a>inner</a> </a>start <br> end<a> after</a></doc>", true);
+
   }
 }

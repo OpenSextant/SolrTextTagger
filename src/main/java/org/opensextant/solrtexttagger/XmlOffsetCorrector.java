@@ -58,7 +58,7 @@ public class XmlOffsetCorrector extends OffsetCorrector {
    * @throws XMLStreamException If there's a problem parsing the XML.
    */
   public XmlOffsetCorrector(String docText) throws XMLStreamException {
-    super(docText);
+    super(docText, false);
 
     int tagCounter = 0;
     int thisTag = -1;

@@ -1,13 +1,14 @@
 package org.opensextant.solrtexttagger;
 
-import net.htmlparser.jericho.EndTag;
 import net.htmlparser.jericho.EndTagType;
 import net.htmlparser.jericho.Segment;
 import net.htmlparser.jericho.StartTag;
 import net.htmlparser.jericho.StartTagType;
 import net.htmlparser.jericho.StreamedSource;
 import net.htmlparser.jericho.Tag;
-import sun.font.LayoutPathImpl;
+
+import java.util.Collections;
+import java.util.Set;
 
 /**
  * Corrects offsets to adjust for HTML formatted data. The goal is such that the caller should be
@@ -25,9 +26,13 @@ public class HtmlOffsetCorrector extends OffsetCorrector {
    * Initialize based on the document text.
    *
    * @param docText non-null structured content.
+   * @param nonTaggableTags HTML element names that should not be "taggable" (be a part of any
+   *                        tag). These must be lower-case.
    */
-  protected HtmlOffsetCorrector(String docText) {
-    super(docText);
+  protected HtmlOffsetCorrector(String docText, Set<String> nonTaggableTags) {
+    super(docText, nonTaggableTags != null);
+    if (nonTaggableTags == null)
+      nonTaggableTags = Collections.emptySet();
 
     int tagCounter = 1;//document implicit tag, and counting
     int thisTag = 0;//document implicit tag
@@ -41,11 +46,16 @@ public class HtmlOffsetCorrector extends OffsetCorrector {
     StreamedSource source = new StreamedSource(docText);
     source.setCoalescing(false);
 
+    int nonTaggablesInProgress = 0;
+
     for (Segment segment : source) {
       if (segment instanceof Tag) {
         Tag tag = (Tag) segment;
         if (tag.getTagType() == StartTagType.NORMAL) {
           final StartTag startTag = (StartTag) tag;
+
+          //TODO Consider "implicitly terminating tags", which is dependent on the current tag.
+
           if (!startTag.isEmptyElementTag() && !startTag.isEndTagForbidden()) {//e.g. not "<br>"
             tagInfo.ensureCapacity(tagInfo.size() + 5);
             final int parentTag = thisTag;
@@ -56,14 +66,27 @@ public class HtmlOffsetCorrector extends OffsetCorrector {
 
             parentChangeOffsets.add(tag.getBegin());
             parentChangeIds.add(thisTag);
+
+            //non-taggable tracking:
+            if (nonTaggableTags.contains(tag.getName())) {//always lower-case
+              if (nonTaggablesInProgress++ == 0)
+                nonTaggableOffsets.add(tag.getBegin());
+            }
           }
         } else if (tag.getTagType() == EndTagType.NORMAL) {
+          //TODO validate we're closing the tag we think we're closing.
           tagInfo.set(5 * thisTag + 3, tag.getBegin());
           tagInfo.set(5 * thisTag + 4, tag.getEnd());
           thisTag = getParentTag(thisTag);
 
           parentChangeOffsets.add(tag.getEnd());
           parentChangeIds.add(thisTag);
+
+          //non-taggable tracking:
+          if (nonTaggableTags.contains(tag.getName())) {
+            if (nonTaggablesInProgress-- == 1)
+              nonTaggableOffsets.add(tag.getEnd() - 1);
+          }
         }
       }
       //else we don't care
@@ -71,5 +94,8 @@ public class HtmlOffsetCorrector extends OffsetCorrector {
 
     parentChangeOffsets.add(docText.length()+1);
     parentChangeIds.add(-1);
+
+    assert nonTaggableTags.isEmpty() || nonTaggableOffsets.size() % 2 == 0;//null or even
   }
+
 }

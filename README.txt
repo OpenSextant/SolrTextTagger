@@ -129,6 +129,9 @@ The tagger request-time parameters are:
  that would never work with an XML parser. There needn't be a top level element, and some tags
  are known to self-close (e.g. BR). The tagger uses the Jericho HTML Parser for this feature
  (dual LGPL & EPL licensed).
+ * nonTaggableTags: (only with htmlOffsetAdjust) Omits tags that would enclose one of these HTML
+ elements. Comma delimited, lower-case. For example 'a' (anchor) would be a likely choice so that
+ links the application inserts don't overlap other links.
  * fl: Solr's standard param for listing the fields to return.
  * Most other standard parameters for working with Solr response formatting:
  echoParams, wt, indent, etc.

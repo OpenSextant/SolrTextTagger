@@ -66,10 +66,15 @@ import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Scans posted text, looking for matching strings in the Solr index.
@@ -93,6 +98,8 @@ public class TaggerRequestHandler extends RequestHandlerBase {
   public static final String XML_OFFSET_ADJUST = "xmlOffsetAdjust";
   /** Request parameter. */
   public static final String HTML_OFFSET_ADJUST = "htmlOffsetAdjust";
+  /** Request parameter. */
+  public static final String NON_TAGGABLE_TAGS = "nonTaggableTags";
 
   private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -116,6 +123,7 @@ public class TaggerRequestHandler extends RequestHandlerBase {
             fieldHasIndexedStopFilter(indexedField, req));
     final boolean htmlOffsetAdjust = req.getParams().getBool(HTML_OFFSET_ADJUST, false);
     final boolean xmlOffsetAdjust = req.getParams().getBool(XML_OFFSET_ADJUST, false);
+    final String nonTaggableTags = req.getParams().get(NON_TAGGABLE_TAGS);
 
     //--Get posted data
     Reader inputReader = null;
@@ -146,7 +154,7 @@ public class TaggerRequestHandler extends RequestHandlerBase {
     }
 
     final OffsetCorrector offsetCorrector =
-            initOffsetCorrector(htmlOffsetAdjust, xmlOffsetAdjust, inputString);
+            initOffsetCorrector(htmlOffsetAdjust, xmlOffsetAdjust, inputString, nonTaggableTags);
     final SolrIndexSearcher searcher = req.getSearcher();
     final OpenBitSet matchDocIdsBS = new OpenBitSet(searcher.maxDoc());
     final List tags = new ArrayList(2000);
@@ -229,16 +237,28 @@ public class TaggerRequestHandler extends RequestHandlerBase {
     rsp.add("response", getDocList(rows, matchDocIdsBS));
   }
 
-  private OffsetCorrector initOffsetCorrector(boolean htmlOffsetAdjust, boolean xmlOffsetAdjust, String inputString) {
+  private OffsetCorrector initOffsetCorrector(boolean htmlOffsetAdjust, boolean xmlOffsetAdjust,
+                                              String inputString, String nonTaggableTags) {
     OffsetCorrector offsetCorrector;
     if (htmlOffsetAdjust) {
+      Set<String> nonTaggableTagSet = null;
+      if (nonTaggableTags != null) {
+        //comma delimited list
+        nonTaggableTags = nonTaggableTags.toLowerCase(Locale.ROOT);
+        final String[] strings = nonTaggableTags.split(",");
+        nonTaggableTagSet = new HashSet<String>(strings.length);
+        Collections.addAll(nonTaggableTagSet, strings);
+      }
       try {
-        offsetCorrector = new HtmlOffsetCorrector(inputString);
+        offsetCorrector = new HtmlOffsetCorrector(inputString, nonTaggableTagSet);
       } catch (Exception e) {
         throw new SolrException(SolrException.ErrorCode.BAD_REQUEST,
                 "Expecting HTML but wasn't: " + e.toString(), e);
       }
     } else if (xmlOffsetAdjust) {
+      if (nonTaggableTags != null)
+        throw new SolrException(SolrException.ErrorCode.BAD_REQUEST,
+                NON_TAGGABLE_TAGS+" not supported for xml");
       try {
         offsetCorrector = new XmlOffsetCorrector(inputString);
       } catch (XMLStreamException e) {

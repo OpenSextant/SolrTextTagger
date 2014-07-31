@@ -54,6 +54,8 @@ public class XmlInterpolationTest extends AbstractTaggerTest {
     assertXmlTag("<doc>before start <br/> end after</doc>", true);
     assertXmlTag("<doc>before <em>start</em> <b>end</b> after</doc>", true);
     assertXmlTag("<doc>before <em>start</em> end after</doc>", true);
+    assertXmlTag("<doc>before start end<em> after</em></doc>", true);
+    assertXmlTag("<doc><em>before </em>start end after</doc>", true);//adjacent tags
     assertXmlTag("<doc>before <b> <em>start</em> </b> end after</doc>", true);
     assertXmlTag("<doc>before <b> <em>start</em> </b> <em>  end  </em> after</doc>", true);
 
