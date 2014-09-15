@@ -40,7 +40,7 @@ import java.util.Map;
 
 /**
  * Tags maximum string of words in a corpus.  This is a callback-style API
- * in which you implement {@link #tagCallback(int, int, org.apache.lucene.util.IntsRef)}.
+ * in which you implement {@link #tagCallback(int, int, Object)}.
  *
  * This class should be independently usable outside Solr.
  *
@@ -106,8 +106,8 @@ public abstract class Tagger {
     while (tokenStream.incrementToken()) {
       if (log.isTraceEnabled()) {
         log.trace("Token: {}, posInc: {},  offset: [{},{}]",
-                new Object[]{byteRefAtt, posIncAtt.getPositionIncrement(),
-                        offsetAtt.startOffset(), offsetAtt.endOffset()});
+                byteRefAtt, posIncAtt.getPositionIncrement(),
+                offsetAtt.startOffset(), offsetAtt.endOffset());
       }
       //check for posInc < 1 (alternate Tokens, such as expanded Synonyms)
       if (posIncAtt.getPositionIncrement() < 1) {
