@@ -1,20 +1,18 @@
 # Solr Text Tagger
 
 This project implements a "naive" text tagger based on Lucene / Solr, using
-Lucene FST (Finite State Transducer) technology under the hood.  It is "naive"
+Lucene FST (Finite State Transducer) technology under the hood for remarkable low-memory properties.  It is "naive"
 because it does simple text word based substring tagging without consideration
 of any natural language context.  It operates on the results of how you
 configure text analysis in Lucene and so it's quite flexible to match things
-like phonetics for sounds-like tagging if you wanted to.
+like phonetics for sounds-like tagging if you wanted to.  For more information, see the presentation video/slides referenced below.
 
-If this sounds interesting, then watch [this](http://www.youtube.com/watch?v=3kQyYbTyXfc) presentation about the SolrTextTagger given at Lucene Revolution 2013, by David Smiley
+## Resources / References
 
-For more information on Lucene FSTs, the technological marvel that enables this
-component to keep ten millions place names in a structure that is a mere 175MB,
-see these 
+* [Text Tagging with Finite State Transducers (video)](http://www.youtube.com/watch?v=3kQyYbTyXfc) ([slides](http://lucenerevolution.org/wp-content/uploads/2014/08/Text-Tagging-with-Finite-State-Transducers.pdf)) -- a presentation at Lucene Revolution 2013 by David Smiley
+* [Fuzzy String Matching with SolrTextTagger](http://sujitpal.blogspot.com/2014/02/fuzzy-string-matching-with.html) -- a blog post by Sujit Pal
 
-## Resources
-
+Pertaining to Lucene's Finite State Transducers:
 * https://docs.google.com/presentation/d/1Z7OYvKc5dHAXiVdMpk69uulpIT6A7FGfohjHx8fmHBU/edit#slide=id.p
 * http://blog.mikemccandless.com/2010/12/using-finite-state-transducers-in.html
 * http://blog.mikemccandless.com/2011/01/finite-state-transducers-part-2.html
@@ -25,7 +23,7 @@ see these
 
 ## Build Instructions
 
-### Maven (preferred):
+The build requires Maven, although an out-dated Ant build file remains.
 
 To compile and run tests, use:
 
@@ -35,19 +33,13 @@ To compile, test, and build the jar (placed in target/), use
 
     %> mvn package
 
-### Ant
-
-To compile and build (placed in build/), use:
-
-    %> ant
-
 
 ## Configuration
 
 A Solr schema.xml needs 2 things
 
  * A unique key field  (see <uniqueKey>).
- * A name/lookup field indexed with Shingling or ConcatenateFilter.
+ * A name/lookup field indexed with Shingling or more likely ConcatenateFilter.
 
 Assuming you want to support typical keyword search on the names, you'll index
 the names separately in another field with a different field type configuration than the
@@ -62,9 +54,7 @@ consecutive positions <i>(i.e. the position increment of each term must always b
 1)</i>.  So, be careful with use of stop words, synonyms, WordDelimiterFilter, and
 potentially others.  On the other hand, if the input text
 has a position increment greater than one then it is handled properly as if an
-unknown word was there.  It's plausible that
-this restriction might be lifted in the future but it is tricky -- see [this](http://blog.mikemccandless.com/2012/04/lucenes-tokenstreams-are-actually.html) for
-more information.
+unknown word was there.  This is a feature that has largely been overcome in the 1.1 version but it has yet to be ported to 2.x; see [Issue #20, RE the PhraseBuilder](https://github.com/OpenSextant/SolrTextTagger/issues/20)
 
 To make the tagger work as fast as possible, configure the name field with
 <i>postingsFormat="Memory";</i> you'll have to add this to <i>solrconfig.xml</i> to use that
