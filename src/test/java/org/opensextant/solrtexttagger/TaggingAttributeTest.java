@@ -34,8 +34,10 @@ public class TaggingAttributeTest extends AbstractTaggerTest {
 
   @BeforeClass
   public static void beforeClass() throws Exception {
-    //NOTE: We use the TaggingAttribute specific condifiguration
-    initCore("solrconfig.xml", "schema.xml", "taggingattribute");
+    //NOTE: We use the TaggingAttribute specific configuration
+    // Reference solr-home in target/test-classes since that's where it's copied and any config
+    // persisting (e.g. from rest managed stuff) will happen there.
+    initCore("solrconfig.xml", "schema.xml", "target/test-classes/taggingattribute");
   }
 
   @Test

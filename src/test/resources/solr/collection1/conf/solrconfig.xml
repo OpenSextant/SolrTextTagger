@@ -31,6 +31,9 @@
 
   <!-- for postingsFormat="Memory" -->
   <codecFactory name="CodecFactory" class="solr.SchemaCodecFactory" />
+  
+  <!-- since Solr 4.8: -->
+  <schemaFactory name="SchemaFactory" class="solr.ClassicIndexSchemaFactory" />
 
   <query>
     <!-- illustrate putting in memory for warm-up -->

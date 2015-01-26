@@ -32,6 +32,9 @@
   <!-- for postingsFormat="Memory" -->
   <codecFactory name="CodecFactory" class="solr.SchemaCodecFactory" />
 
+  <!-- since Solr 4.8: -->
+  <schemaFactory name="SchemaFactory" class="solr.ClassicIndexSchemaFactory" />
+
   <!--<requestHandler name="/select" class="solr.SearchRequestHandler"></requestHandler>-->
 
   <requestHandler name="/tag" class="org.opensextant.solrtexttagger.TaggerRequestHandler">

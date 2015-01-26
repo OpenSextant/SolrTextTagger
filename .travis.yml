@@ -17,7 +17,10 @@ matrix:
       env: SOLR_VERSION=4.8.1
   include:
     - jdk: openjdk7
-      env: SOLR_VERSION=4.9.0
+      env: SOLR_VERSION=4.9.1
+  include:
+    - jdk: openjdk7
+      env: SOLR_VERSION=4.10.3
 
 notifications:
   email:
