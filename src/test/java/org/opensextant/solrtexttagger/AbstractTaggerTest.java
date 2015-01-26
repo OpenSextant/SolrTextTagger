@@ -53,7 +53,7 @@ import java.util.Map;
 import java.util.TreeSet;
 
 /**
- * @author David Smiley - dsmiley@mitre.org
+ * @author David Smiley - dsmiley@apache.org
  */
 public abstract class AbstractTaggerTest extends SolrTestCaseJ4 {
 

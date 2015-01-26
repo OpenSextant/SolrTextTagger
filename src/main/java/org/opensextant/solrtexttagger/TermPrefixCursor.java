@@ -33,8 +33,6 @@ import java.util.Map;
 
 /**
  * Cursor into the terms that advances by prefix.
- *
- * @author David Smiley - dsmiley@mitre.org
  */
 class TermPrefixCursor {
 

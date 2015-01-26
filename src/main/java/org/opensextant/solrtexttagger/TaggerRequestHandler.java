@@ -79,8 +79,6 @@ import java.util.Set;
 /**
  * Scans posted text, looking for matching strings in the Solr index.
  * The public static final String members are request parameters.
- *
- * @author David Smiley - dsmiley@mitre.org
  */
 public class TaggerRequestHandler extends RequestHandlerBase {
 

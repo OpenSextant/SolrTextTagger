@@ -43,8 +43,6 @@ import java.util.Map;
  * in which you implement {@link #tagCallback(int, int, Object)}.
  *
  * This class should be independently usable outside Solr.
- *
- * @author David Smiley - dsmiley@mitre.org
  */
 public abstract class Tagger {
   private final Logger log = LoggerFactory.getLogger(Tagger.class);

@@ -28,8 +28,7 @@ import org.apache.lucene.analysis.util.TokenFilterFactory;
 import java.util.Map;
 
 /**
- * @see {@link ConcatenateFilter}.
- * @author David Smiley - dsmiley@mitre.org
+ * @see ConcatenateFilter
  */
 public class ConcatenateFilterFactory extends TokenFilterFactory {
 

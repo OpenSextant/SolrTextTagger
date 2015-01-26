@@ -22,9 +22,6 @@
 
 package org.opensextant.solrtexttagger;
 
-/**
- * @author David Smiley - dsmiley@mitre.org
- */
 public interface TagClusterReducer {
   /**
    * Reduces the linked-list to only those tags that should be emitted

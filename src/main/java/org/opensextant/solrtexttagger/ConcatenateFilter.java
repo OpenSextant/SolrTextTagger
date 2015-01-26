@@ -33,8 +33,6 @@ import java.io.IOException;
  * Concatenate all tokens, separated by a provided character,
  * defaulting to a single space. It always produces exactly one token, and it's designed to be the
  * last token filter in an analysis chain.
- *
- * @author David Smiley - dsmiley@mitre.org
  */
 public class ConcatenateFilter extends TokenFilter {
 

@@ -38,8 +38,6 @@ import java.io.IOException;
  * a reference to the head via a 1-element array, which is potentially modified
  * if any of the linked-list methods are called. Tags in the list should have
  * equal or increasing start offsets.
- *
- * @author David Smiley - dsmiley@mitre.org
  */
 public class TagLL{
 

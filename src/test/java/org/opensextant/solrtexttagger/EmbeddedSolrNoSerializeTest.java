@@ -47,7 +47,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * Tests that we can skip serialization of the documents when embedding
  * Solr.
  *
- * @author David Smiley - dsmiley@mitre.org
+ * @author David Smiley - dsmiley@apache.org
  */
 public class EmbeddedSolrNoSerializeTest extends SolrTestCaseJ4 {
 
