@@ -13,6 +13,7 @@ like phonetics for sounds-like tagging if you wanted to.  For more information, 
 * [Fuzzy String Matching with SolrTextTagger](http://sujitpal.blogspot.com/2014/02/fuzzy-string-matching-with.html) -- a blog post by Sujit Pal
 
 Pertaining to Lucene's Finite State Transducers:
+
 * https://docs.google.com/presentation/d/1Z7OYvKc5dHAXiVdMpk69uulpIT6A7FGfohjHx8fmHBU/edit#slide=id.p
 * http://blog.mikemccandless.com/2010/12/using-finite-state-transducers-in.html
 * http://blog.mikemccandless.com/2011/01/finite-state-transducers-part-2.html
@@ -85,8 +86,10 @@ Here is a sample field type config that should work quite well:
 A Solr solrconfig.xml needs a special request handler, configured like this.
 
     <requestHandler name="/tag" class="org.opensextant.solrtexttagger.TaggerRequestHandler">
-      <str name="field">name_tag</str>
-      <str name="fq">NOT name:(of the)</str><!-- filter out -->
+      <lst name="defaults">
+        <str name="field">name_tag</str>
+        <str name="fq">NOT name:(of the)</str><!-- filter out -->
+      </lst>
     </requestHandler>
 
  * field: The field that represents the corpus to match on, as described above.

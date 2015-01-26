@@ -35,6 +35,7 @@
   <!--<requestHandler name="/select" class="solr.SearchRequestHandler"></requestHandler>-->
 
   <requestHandler name="/tag" class="org.opensextant.solrtexttagger.TaggerRequestHandler">
+    <!-- top level params; legacy format just to test it still works -->
     <str name="field">name_tag</str>
     <str name="fq">NOT name:(of the)</str><!-- filter out -->
   </requestHandler>

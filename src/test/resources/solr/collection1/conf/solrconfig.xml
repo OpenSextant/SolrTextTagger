@@ -49,20 +49,25 @@
   <requestHandler name="/select" class="solr.SearchHandler"></requestHandler>
 
   <requestHandler name="/tag" class="org.opensextant.solrtexttagger.TaggerRequestHandler">
-    <str name="field">name_tag</str>
-    <str name="fq">NOT name:(of the)</str><!-- filter out -->
+    <lst name="defaults">
+      <str name="field">name_tag</str>
+      <str name="fq">NOT name:(of the)</str><!-- filter out -->
+    </lst>
   </requestHandler>
 
   <requestHandler name="/tagStop" class="org.opensextant.solrtexttagger.TaggerRequestHandler">
+    <!-- top level params; legacy format just to test it still works -->
     <str name="field">name_tagStop</str>
   </requestHandler>
 
   <requestHandler name="/tagPartial" class="org.opensextant.solrtexttagger.TaggerRequestHandler">
+    <!-- top level params; legacy format just to test it still works -->
     <str name="field">name_tagPartial</str>
     <str name="fq">NOT name:(of the)</str><!-- filter out -->
   </requestHandler>
 
   <requestHandler name="/tagXml" class="org.opensextant.solrtexttagger.TaggerRequestHandler">
+    <!-- top level params; legacy format just to test it still works -->
     <str name="field">name_tagXml</str>
   </requestHandler>
 
