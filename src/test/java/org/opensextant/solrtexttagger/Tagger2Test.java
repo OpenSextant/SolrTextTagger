@@ -22,7 +22,9 @@
 
 package org.opensextant.solrtexttagger;
 
+import org.apache.commons.lang.math.RandomUtils;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -59,6 +61,10 @@ public class Tagger2Test extends AbstractTaggerTest {
   }
 
   @Test
+  @Ignore
+  // As of Lucene/Solr 4.9, StandardTokenizer never does this anymore (reported to Lucene dev-list,
+  // Jan 26th 2015.  Honestly it's not particularly important to us but it renders this test
+  // pointless.
   /** Orig issue https://github.com/OpenSextant/SolrTextTagger/issues/2  related: #13 */
   public void testVeryLongWord() throws Exception {
     String SANFRAN = "San Francisco";
