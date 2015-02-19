@@ -33,7 +33,8 @@ public class ConcatenateFilterTest extends BaseTokenStreamTestCase {
 
   public void testTypical() throws IOException {
     String NYC = "new york city";
-    TokenStream stream = new WhitespaceTokenizer(TEST_VERSION_CURRENT, new StringReader(NYC));
+    WhitespaceTokenizer stream = new WhitespaceTokenizer();
+    stream.setReader(new StringReader(NYC));
     ConcatenateFilter filter = new ConcatenateFilter(stream);
     try {
       assertTokenStreamContents(filter, new String[]{NYC},

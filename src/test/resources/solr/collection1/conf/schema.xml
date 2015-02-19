@@ -72,7 +72,7 @@
         <tokenizer class="solr.StandardTokenizerFactory" />
         <filter class="solr.ASCIIFoldingFilterFactory"/>
         <filter class="solr.LowerCaseFilterFactory"/>
-        <filter class="solr.StopFilterFactory" enablePositionIncrements="true" /><!-- by default english stopwords -->
+        <filter class="solr.StopFilterFactory" /><!-- by default english stopwords -->
 
         <filter class="org.opensextant.solrtexttagger.ConcatenateFilterFactory" />
       </analyzer>
@@ -80,7 +80,7 @@
         <tokenizer class="solr.StandardTokenizerFactory" />
         <filter class="solr.ASCIIFoldingFilterFactory"/>
         <filter class="solr.LowerCaseFilterFactory"/>
-        <filter class="solr.StopFilterFactory" enablePositionIncrements="true" /><!-- by default english stopwords -->
+        <filter class="solr.StopFilterFactory" /><!-- by default english stopwords -->
       </analyzer>
     </fieldType>
 

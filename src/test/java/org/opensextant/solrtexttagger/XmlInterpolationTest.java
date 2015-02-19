@@ -153,10 +153,12 @@ public class XmlInterpolationTest extends AbstractTaggerTest {
     int[] result = {-1, -1};
 
     Reader filter = new HTMLStripCharFilter(new StringReader(docText));
-    TokenStream ts = new WhitespaceTokenizer(LuceneTestCase.TEST_VERSION_CURRENT, filter);
+
+    WhitespaceTokenizer ts = new WhitespaceTokenizer();
     final CharTermAttribute termAttribute = ts.addAttribute(CharTermAttribute.class);
     final OffsetAttribute offsetAttribute = ts.addAttribute(OffsetAttribute.class);
     try {
+      ts.setReader(filter);
       ts.reset();
       while (ts.incrementToken()) {
         final String termString = termAttribute.toString();
@@ -181,9 +183,10 @@ public class XmlInterpolationTest extends AbstractTaggerTest {
 
     Reader filter = new HTMLStripCharFilter(new StringReader(docText),
             Collections.singleton("unescaped"));
-    TokenStream ts = new WhitespaceTokenizer(LuceneTestCase.TEST_VERSION_CURRENT, filter);
+    WhitespaceTokenizer ts = new WhitespaceTokenizer();
     final CharTermAttribute termAttribute = ts.addAttribute(CharTermAttribute.class);
     try {
+      ts.setReader(filter);
       ts.reset();
       while (ts.incrementToken()) {
         result.add(termAttribute.toString());

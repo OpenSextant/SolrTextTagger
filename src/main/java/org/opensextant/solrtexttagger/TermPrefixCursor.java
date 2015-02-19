@@ -26,6 +26,7 @@ import org.apache.lucene.index.DocsEnum;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.BytesRefBuilder;
 import org.apache.lucene.util.IntsRef;
 
 import java.io.IOException;
@@ -47,6 +48,7 @@ class TermPrefixCursor {
   private final Map<BytesRef, IntsRef> docIdsCache;
 
   private BytesRef prefixBuf;//we append to this
+  private BytesRefBuilder prefixBufBuilder = new BytesRefBuilder();
   private boolean prefixBufOnLoan;//if true, PB is loaned; needs to be copied
   private DocsEnum docsEnum;
   private IntsRef docIds;
@@ -77,9 +79,10 @@ class TermPrefixCursor {
     } else { // subsequent advance
       //append to existing
       assert !prefixBufOnLoan;
-      prefixBuf.grow(prefixBuf.length + 1 + word.length);
-      prefixBuf.bytes[prefixBuf.length++] = SEPARATOR_CHAR;
-      prefixBuf.append(word);
+
+      prefixBufBuilder.append(SEPARATOR_CHAR);
+      prefixBufBuilder.append(word);
+      prefixBuf = prefixBufBuilder.get();
       if (seekPrefix()) {
         return true;
       } else {
@@ -92,9 +95,10 @@ class TermPrefixCursor {
   private void ensureBufIsACopy() {
     if (!prefixBufOnLoan)
       return;
-    BytesRef newPrefixBuf = new BytesRef(64);
-    newPrefixBuf.copyBytes(prefixBuf);
-    prefixBuf = newPrefixBuf;
+
+    prefixBufBuilder.clear();
+    prefixBufBuilder.copyBytes(prefixBuf);
+    prefixBuf = prefixBufBuilder.get();
     prefixBufOnLoan = false;
   }
 
