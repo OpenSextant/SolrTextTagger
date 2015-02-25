@@ -56,7 +56,7 @@ public class EmbeddedSolrNoSerializeTest extends SolrTestCaseJ4 {
   @BeforeClass
   public static void init() throws Exception {
     initCore("solrconfig.xml", "schema.xml");
-    solrServer = new EmbeddedSolrServer(h.getCoreContainer(), null);
+    solrServer = new EmbeddedSolrServer(h.getCoreContainer(), "collection1");
     //we don't need to close the EmbeddedSolrServer because SolrTestCaseJ4 closes the core
   }
 

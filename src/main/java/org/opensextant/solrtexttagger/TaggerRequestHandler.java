@@ -27,7 +27,7 @@ import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.core.StopFilterFactory;
 import org.apache.lucene.analysis.util.TokenFilterFactory;
-import org.apache.lucene.index.AtomicReaderContext;
+import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.ReaderUtil;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.queries.function.FunctionValues;
@@ -35,9 +35,10 @@ import org.apache.lucene.queries.function.ValueSource;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.util.BitSetIterator;
 import org.apache.lucene.util.Bits;
+import org.apache.lucene.util.FixedBitSet;
 import org.apache.lucene.util.IntsRef;
-import org.apache.lucene.util.OpenBitSet;
 import org.apache.solr.analysis.TokenizerChain;
 import org.apache.solr.common.SolrException;
 import org.apache.solr.common.params.CommonParams;
@@ -154,14 +155,14 @@ public class TaggerRequestHandler extends RequestHandlerBase {
     final OffsetCorrector offsetCorrector =
             initOffsetCorrector(htmlOffsetAdjust, xmlOffsetAdjust, inputString, nonTaggableTags);
     final SolrIndexSearcher searcher = req.getSearcher();
-    final OpenBitSet matchDocIdsBS = new OpenBitSet(searcher.maxDoc());
+    final FixedBitSet matchDocIdsBS = new FixedBitSet(searcher.maxDoc());
     final List tags = new ArrayList(2000);
 
     try {
       Analyzer analyzer = req.getSchema().getField(indexedField).getType().getQueryAnalyzer();
       TokenStream tokenStream = analyzer.tokenStream("", inputReader);
       try {
-        Terms terms = searcher.getAtomicReader().terms(indexedField);
+        Terms terms = searcher.getLeafReader().terms(indexedField);
         if (terms == null)
           throw new SolrException(SolrException.ErrorCode.BAD_REQUEST,
               "field "+indexedField+" has no indexed data");
@@ -269,7 +270,7 @@ public class TaggerRequestHandler extends RequestHandlerBase {
     return offsetCorrector;
   }
 
-  private DocList getDocList(int rows, OpenBitSet matchDocIdsBS) throws IOException {
+  private DocList getDocList(int rows, FixedBitSet matchDocIdsBS) throws IOException {
     //Now we must supply a Solr DocList and add it to the response.
     //  Typically this is gotten via a SolrIndexSearcher.search(), but in this case we
     //  know exactly what documents to return, the order doesn't matter nor does
@@ -279,7 +280,7 @@ public class TaggerRequestHandler extends RequestHandlerBase {
     //  payoff.
     int matchDocs = (int) matchDocIdsBS.cardinality();
     int[] docIds = new int[ Math.min(rows, matchDocs) ];
-    DocIdSetIterator docIdIter = matchDocIdsBS.iterator();
+    DocIdSetIterator docIdIter = new BitSetIterator(matchDocIdsBS, 1);
     for (int i = 0; i < docIds.length; i++) {
       docIds[i] = docIdIter.nextDoc();
     }
@@ -336,14 +337,14 @@ public class TaggerRequestHandler extends RequestHandlerBase {
         };
       }
     } else {
-      docBits = searcher.getAtomicReader().getLiveDocs();
+      docBits = searcher.getLeafReader().getLiveDocs();
     }
     return docBits;
   }
 
   private boolean fieldHasIndexedStopFilter(String field, SolrQueryRequest req) {
     FieldType fieldType = req.getSchema().getFieldType(field);
-    Analyzer analyzer = fieldType.getAnalyzer();//index analyzer
+    Analyzer analyzer = fieldType.getIndexAnalyzer();//index analyzer
     if (analyzer instanceof TokenizerChain) {
       TokenizerChain tokenizerChain = (TokenizerChain) analyzer;
       TokenFilterFactory[] tokenFilterFactories = tokenizerChain.getTokenFilterFactories();
@@ -390,7 +391,7 @@ public class TaggerRequestHandler extends RequestHandlerBase {
 /** See LUCENE-4541 or {@link org.apache.solr.response.transform.ValueSourceAugmenter}. */
 class ValueSourceAccessor {
   // implement FunctionValues ?
-  private final List<AtomicReaderContext> readerContexts;
+  private final List<LeafReaderContext> readerContexts;
   private final FunctionValues[] docValuesArr;
   private final ValueSource valueSource;
   private final Map fContext;
@@ -407,7 +408,7 @@ class ValueSourceAccessor {
 
   private void setState(int docid) {
     int idx = ReaderUtil.subIndex(docid, readerContexts);
-    AtomicReaderContext rcontext = readerContexts.get(idx);
+    LeafReaderContext rcontext = readerContexts.get(idx);
     values = docValuesArr[idx];
     if (values == null) {
       try {
