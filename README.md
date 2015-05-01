@@ -1,11 +1,12 @@
 # Solr Text Tagger
 
 This project implements a "naive" text tagger based on Lucene / Solr, using
-Lucene FST (Finite State Transducer) technology under the hood for remarkable low-memory properties.  It is "naive"
-because it does simple text word based substring tagging without consideration
+Lucene FST (Finite State Transducer) technology under the hood for remarkable low-memory properties.
+It is "naive" because it does simple text word based substring tagging without consideration
 of any natural language context.  It operates on the results of how you
 configure text analysis in Lucene and so it's quite flexible to match things
-like phonetics for sounds-like tagging if you wanted to.  For more information, see the presentation video/slides referenced below.
+like phonetics for sounds-like tagging if you wanted to.  For more information, see the presentation
+video/slides referenced below.
 
 ## Resources / References
 
@@ -42,24 +43,28 @@ A Solr schema.xml needs 2 things
  * A unique key field  (see <uniqueKey>).
  * A name/lookup field indexed with Shingling or more likely ConcatenateFilter.
 
-Assuming you want to support typical keyword search on the names, you'll index
-the names separately in another field with a different field type configuration than the
-configuration described here.
-The name field's index analyzer needs to end in either Shingling for "partial"
-(i.e. sub name phrase) matching, or more likely using ConcatenateFilter for full matching.
-Don't do it for the query time analysis. ConcatenateFilter acts similar to shingling but it
-concatenates all tokens into one final token with a space separator.
+If you want to support typical keyword search on the names, not just tagging, then index
+the names in an additional field with a typical analysis configuration to your preference.
 
-For the indexed name data, the text analysis should result in
+For tagging, the name field's index analyzer needs to end in either shingling for "partial"
+(i.e. sub name phrase) matching of a name, or more likely using ConcatenateFilter for 
+complete name matching.  ConcatenateFilter acts similar to shingling but it
+concatenates all tokens into one final token with a space separator.
+The query time analysis should _not_ have Shingling or ConcatenateFilter.
+
+Prior to shingling or the ConcatenateFilter, preceding text analysis should result in
 consecutive positions <i>(i.e. the position increment of each term must always be
-1)</i>.  So, be careful with use of stop words, synonyms, WordDelimiterFilter, and
-potentially others.  On the other hand, if the input text
-has a position increment greater than one then it is handled properly as if an
-unknown word was there.  This is a feature that has largely been overcome in the 1.1 version but it has yet to be ported to 2.x; see [Issue #20, RE the PhraseBuilder](https://github.com/OpenSextant/SolrTextTagger/issues/20)
+1)</i>.  As-such, Synonyms and some configurations of WordDelimiterFilter are not supported. 
+On the other hand, if the input text
+has a position increment greater than one (e.g. stop word) then it is handled properly as if an
+unknown word was there.  Support for synonyms or any other filters producing posInc=0 is a feature
+that has largely been overcome in the 1.1 version but it has yet to be ported to 2.x; see
+[Issue #20, RE the PhraseBuilder](https://github.com/OpenSextant/SolrTextTagger/issues/20)
 
 To make the tagger work as fast as possible, configure the name field with
 <i>postingsFormat="Memory";</i> you'll have to add this to <i>solrconfig.xml</i> to use that
-advanced Solr feature.
+advanced Solr feature.  In doing so, all the terms/postings are placed into an efficient FST
+data structure.
 
     <codecFactory name="CodecFactory" class="solr.SchemaCodecFactory" />
 
@@ -107,7 +112,13 @@ For tagging, you HTTP POST data to Solr similar to how the ExtractingRequestHand
 ### The tagger request-time parameters are
 
  * overlaps: choose the algorithm to determine which overlapping tags should be
- retained, versus being pruned away.  See below...
+ retained, versus being pruned away.  Options are:
+   * ALL: Emit all tags.
+   * NO_SUB: Don't emit a tag that is completely within another tag (i.e. no subtag).
+   * LONGEST_DOMINANT_RIGHT: Given a cluster of overlapping tags, emit the longest
+     one (by character length). If there is a tie, pick the right-most. Remove
+     any tags overlapping with this tag then repeat the algorithm to potentially
+     find other tags that can be emitted in the cluster.
  * matchText: A boolean indicating whether to return the matched text in the tag
  response.  This will trigger the tagger to fully buffer the input before tagging.
  * tagsLimit: The maximum number of tags to return in the response.  Tagging
@@ -140,14 +151,7 @@ For tagging, you HTTP POST data to Solr similar to how the ExtractingRequestHand
  * Most other standard parameters for working with Solr response formatting:
  echoParams, wt, indent, etc.
 
-### Options for the "overlaps" parameter
-
- * ALL: Emit all tags.
- * NO_SUB: Don't emit a tag that is completely within another tag (i.e. no subtag).
- * LONGEST_DOMINANT_RIGHT: Given a cluster of overlapping tags, emit the longest
-  one (by character length). If there is a tie, pick the right-most. Remove
-  any tags overlapping with this tag then repeat the algorithm to potentially
-  find other tags that can be emitted in the cluster.
+### Output
 
 The output is broken down into two parts, first an array of tags, and then
 Solr documents referenced by those tags.  Each tag has the starting character
