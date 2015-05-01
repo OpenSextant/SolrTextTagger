@@ -113,12 +113,12 @@ For tagging, you HTTP POST data to Solr similar to how the ExtractingRequestHand
 
  * overlaps: choose the algorithm to determine which overlapping tags should be
  retained, versus being pruned away.  Options are:
-   * ALL: Emit all tags.
-   * NO_SUB: Don't emit a tag that is completely within another tag (i.e. no subtag).
-   * LONGEST_DOMINANT_RIGHT: Given a cluster of overlapping tags, emit the longest
-     one (by character length). If there is a tie, pick the right-most. Remove
-     any tags overlapping with this tag then repeat the algorithm to potentially
-     find other tags that can be emitted in the cluster.
+  * ALL: Emit all tags.
+  * NO_SUB: Don't emit a tag that is completely within another tag (i.e. no subtag).
+  * LONGEST_DOMINANT_RIGHT: Given a cluster of overlapping tags, emit the longest
+  one (by character length). If there is a tie, pick the right-most. Remove
+  any tags overlapping with this tag then repeat the algorithm to potentially
+  find other tags that can be emitted in the cluster.
  * matchText: A boolean indicating whether to return the matched text in the tag
  response.  This will trigger the tagger to fully buffer the input before tagging.
  * tagsLimit: The maximum number of tags to return in the response.  Tagging
