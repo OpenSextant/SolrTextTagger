@@ -99,7 +99,7 @@ public class EmbeddedSolrNoSerializeTest extends SolrTestCaseJ4 {
   }
 
   @Test
-  public void testSearch() throws SolrServerException {
+  public void testSearch() throws Exception {
     QueryResponse rsp = solrServer.query(params("q", "name:Boston"));
     assertNotNull(rsp.getResults().get(0));
   }

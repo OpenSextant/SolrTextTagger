@@ -69,9 +69,10 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <!-- tests pass with many other versions; see .travis.yml.  -->
     <!--
-     For solr 4.x compatability see version 2.0, tag: solr-text-tagger-2.0
+     For Solr 4.x compatability use tagger version 2.0, tag: solr-text-tagger-2.0
+     For Solr 5.0 - 5.1,        use tagger version 2.1, tag: solr-text-tagger-2.1
     -->
-    <solr.version>5.0.0</solr.version>
+    <solr.version>5.1.0</solr.version>
   </properties>
 
   <prerequisites>
