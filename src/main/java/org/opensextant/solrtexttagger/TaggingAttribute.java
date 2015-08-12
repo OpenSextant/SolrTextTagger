@@ -28,13 +28,13 @@ import org.apache.lucene.util.Attribute;
 
 /**
  * Attribute used by the {@link Tagger} to decide if a token can start a
- * new {@link TagLL tag}.<p>
- * <p/>
+ * new {@link TagLL tag}.
+ * <p>
  * By default this Attribute will return <code>true</code>, but it might be
  * reset by some {@link TokenFilter} added to the {@link TokenStream} used
  * to analyze the parsed text. Typically this will be done based on NLP
- * processing results (e.g. to only lookup Named Entities). <p>
- * <p/>
+ * processing results (e.g. to only lookup Named Entities).
+ * <p>
  * NOTE: that all Tokens are used to advance existing {@link TagLL tags}.
  *
  * @author Rupert Westenthaler

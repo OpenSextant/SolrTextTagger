@@ -35,7 +35,7 @@ public abstract class OffsetCorrector {
 
   protected final int[] offsetPair = new int[] { -1, -1};//non-thread-safe state
 
-  /** Disjoint start & end span offsets (inclusive) of non-taggable sections. Null if none. */
+  /** Disjoint start and end span offsets (inclusive) of non-taggable sections. Null if none. */
   protected final IntArrayList nonTaggableOffsets;
 
   /**
@@ -58,7 +58,7 @@ public abstract class OffsetCorrector {
    * The start (left) offset is pulled left as needed over whitespace and opening tags. The end
    * (right) offset is pulled right as needed over whitespace and closing tags. It's returned as
    * a 2-element array.
-   * <p />Note that the returned array is internally reused; just use it to examine the response.
+   * <p>Note that the returned array is internally reused; just use it to examine the response.
    */
   public int[] correctPair(int leftOffset, int rightOffset) {
     rightOffset = correctEndOffsetForCloseElement(rightOffset);

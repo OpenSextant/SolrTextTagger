@@ -215,8 +215,9 @@ public abstract class Tagger {
   }
 
   /**
-   * Invoked by {@link #process()} for each tag found.  endOffset is always >= the endOffset given in the previous
-   * call.
+   * Invoked by {@link #process()} for each tag found.  endOffset is always &gt;= the endOffset
+   * given in the previous call.
+   *
    * @param startOffset The character offset of the original stream where the tag starts.
    * @param endOffset One more than the character offset of the original stream where the tag ends.
    * @param docIdsKey A reference to the matching docIds that can be resolved via {@link #lookupDocIds(Object)}.
