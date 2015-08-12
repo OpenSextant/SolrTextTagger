@@ -22,7 +22,7 @@
 
 package org.opensextant.solrtexttagger;
 
-import org.apache.lucene.index.DocsEnum;
+import org.apache.lucene.index.PostingsEnum;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
@@ -50,7 +50,7 @@ class TermPrefixCursor {
   private BytesRef prefixBuf;//we append to this
   private BytesRefBuilder prefixBufBuilder = new BytesRefBuilder();
   private boolean prefixBufOnLoan;//if true, PB is loaned; needs to be copied
-  private DocsEnum docsEnum;
+  private PostingsEnum postingsEnum;
   private IntsRef docIds;
 
   TermPrefixCursor(TermsEnum termsEnum, Bits liveDocs, Map<BytesRef, IntsRef> docIdsCache) {
@@ -113,8 +113,8 @@ class TermPrefixCursor {
         return false;
 
       case FOUND:
-        docsEnum = termsEnum.docs(liveDocs, docsEnum, DocsEnum.FLAG_NONE);
-        docIds = docsEnumToIntsRef(docsEnum);
+        postingsEnum = termsEnum.postings(liveDocs, postingsEnum, PostingsEnum.NONE);
+        docIds = postingsEnumToIntsRef(postingsEnum);
         if (docIds.length > 0) {
           return true;
         }
@@ -144,8 +144,9 @@ class TermPrefixCursor {
     throw new IllegalStateException(seekStatus.toString());
   }
 
-  /** Returns an IntsRef either cached or reading docsEnum. Not null. */
-  private IntsRef docsEnumToIntsRef(DocsEnum docsEnum) throws IOException {
+  /** Returns an IntsRef either cached or reading postingsEnum. Not null.
+   * @param postingsEnum*/
+  private IntsRef postingsEnumToIntsRef(PostingsEnum postingsEnum) throws IOException {
     // (The cache can have empty IntsRefs)
 
     //lookup prefixBuf in a cache
@@ -156,10 +157,10 @@ class TermPrefixCursor {
       }
     }
 
-    //read docsEnum
+    //read postingsEnum
     docIds = new IntsRef(termsEnum.docFreq());
     int docId;
-    while ((docId = docsEnum.nextDoc()) != DocsEnum.NO_MORE_DOCS) {
+    while ((docId = postingsEnum.nextDoc()) != PostingsEnum.NO_MORE_DOCS) {
       docIds.ints[docIds.length++] = docId;
     }
     if (docIds.length == 0)

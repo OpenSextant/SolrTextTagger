@@ -157,7 +157,7 @@ public abstract class Tagger {
 
         //determine if the terms index has a term starting with the provided term
         // TODO cache hashcodes of valid first terms (directly from char[]?) to skip lookups?
-        termsEnum = terms.iterator(termsEnum);
+        termsEnum = terms.iterator();
         if (cursor == null)//re-usable
           cursor = new TermPrefixCursor(termsEnum, liveDocs, docIdsCache);
         if (cursor.advance(term)) {
