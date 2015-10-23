@@ -8,6 +8,9 @@ configure text analysis in Lucene and so it's quite flexible to match things
 like phonetics for sounds-like tagging if you wanted to.  For more information, see the presentation
 video/slides referenced below.
 
+For a list of changes with version of this tagger, to include Solr & Java version compatibility, 
+see [CHANGES.md](CHANGES.md)
+
 ## Resources / References
 
 * [Text Tagging with Finite State Transducers (video)](http://www.youtube.com/watch?v=3kQyYbTyXfc) ([slides](http://lucenerevolution.org/wp-content/uploads/2014/08/Text-Tagging-with-Finite-State-Transducers.pdf)) -- a presentation at Lucene Revolution 2013 by David Smiley
