@@ -8,12 +8,19 @@ configure text analysis in Lucene and so it's quite flexible to match things
 like phonetics for sounds-like tagging if you wanted to.  For more information, see the presentation
 video/slides referenced below.
 
+The tagger can be used for finding entities/concepts in large text, or for doing likewise in queries
+to enhance query-understanding.
+
 For a list of changes with version of this tagger, to include Solr & Java version compatibility, 
 see [CHANGES.md](CHANGES.md)
 
 ## Resources / References
 
-* [Text Tagging with Finite State Transducers (video)](http://www.youtube.com/watch?v=3kQyYbTyXfc) ([slides](http://lucenerevolution.org/wp-content/uploads/2014/08/Text-Tagging-with-Finite-State-Transducers.pdf)) -- a presentation at Lucene Revolution 2013 by David Smiley
+* [Dictionary Based Annotation at scale with Spark, SolrTextTagger, and OpenNLP (video)](https://www.youtube.com/watch?v=gOe0aYAS8Do)
+    ([slides](http://www.slideshare.net/sujitpal/sseu-2015soda))
+    -- a presentation by Sujit Pal at Spark Summit Europe 2015
+* [Text Tagging with Finite State Transducers (video)](http://www.youtube.com/watch?v=3kQyYbTyXfc)
+    ([slides](http://lucenerevolution.org/wp-content/uploads/2014/08/Text-Tagging-with-Finite-State-Transducers.pdf)) -- a presentation at Lucene Revolution 2013 by David Smiley
 * [Fuzzy String Matching with SolrTextTagger](http://sujitpal.blogspot.com/2014/02/fuzzy-string-matching-with.html) -- a blog post by Sujit Pal
 
 Pertaining to Lucene's Finite State Transducers:
@@ -24,7 +31,8 @@ Pertaining to Lucene's Finite State Transducers:
 
 ## Contributors:
 
-  * David Smiley (MITRE)
+  * David Smiley
+  * Rupert Westenthaler   (notably the PhraseBuilder in the 1.1 branch)
 
 ## Build Instructions
 
@@ -96,12 +104,12 @@ A Solr solrconfig.xml needs a special request handler, configured like this.
     <requestHandler name="/tag" class="org.opensextant.solrtexttagger.TaggerRequestHandler">
       <lst name="defaults">
         <str name="field">name_tag</str>
-        <str name="fq">NOT name:(of the)</str><!-- filter out -->
+        <str name="fq">PUT SOME SOLR QUERY HERE; OPTIONAL</str><!-- filter out -->
       </lst>
     </requestHandler>
 
  * field: The field that represents the corpus to match on, as described above.
- * fq: (optional) A query that matches the subset of documents for name matching.
+ * fq: (optional) A query that matches a subset of documents for name matching.
 
 ## Usage
 
