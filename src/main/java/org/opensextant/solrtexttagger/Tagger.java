@@ -140,7 +140,6 @@ public abstract class Tagger {
       // * there are still advancing tags (to find the longest possible match)
       if(lookupAtt.isTaggable() || head[0] != null){
         //-- Lookup the term id from the next token
-        byteRefAtt.fillBytesRef();
         term = byteRefAtt.getBytesRef();
         if (term.length == 0) {
           throw new IllegalArgumentException("term: " + term.utf8ToString() + " analyzed to a zero-length token");
