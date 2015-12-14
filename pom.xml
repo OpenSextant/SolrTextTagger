@@ -127,7 +127,7 @@
     <dependency>
       <groupId>net.htmlparser.jericho</groupId>
       <artifactId>jericho-html</artifactId>
-      <version>3.3</version>
+      <version>3.4</version>
       <optional>true</optional>
     </dependency>
     <!-- Declared because we use it (xmlOffsetAdjust only)
