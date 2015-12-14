@@ -6,7 +6,7 @@ jdk:
   - openjdk7
 env:
 # see pom.xml for notes on previous versions
-  - SOLR_VERSION=5.2.1
+  - SOLR_VERSION=5.3.1
 
 notifications:
   email:
