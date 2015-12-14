@@ -22,6 +22,7 @@
 
 package org.opensextant.solrtexttagger;
 
+import org.apache.lucene.document.Field;
 import org.apache.solr.SolrTestCaseJ4;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.StreamingResponseCallback;
@@ -126,6 +127,6 @@ public class EmbeddedSolrNoSerializeTest extends SolrTestCaseJ4 {
     QueryResponse rsp = req.process(solrServer);
     assertNotNull(rsp.getResponse().get("tags"));
     assertNotNull(refDoc.get());
-    assertEquals("Boston", refDoc.get().getFieldValue("name"));
+    assertEquals("Boston", ((Field)refDoc.get().getFieldValue("name")).stringValue());
   }
 }
