@@ -4,6 +4,12 @@ NOTE: There are two independent recommended version of the tagger: the latest 2.
 1.x has a key feature (as seen below) that didn't make it to 2.x.  If you don't need that feature
 then use 2.x.
 
+## Version 2.3, UNRELEASED
+
+Compatible with Solr 5.3, 5.4, ...?
+
+Compiled for Java 1.7.
+
 ## Version 2.2, December 16th, 2015
 
 Compatible with Solr 5.2
