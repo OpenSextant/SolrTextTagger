@@ -4,7 +4,7 @@ NOTE: There are two independent recommended version of the tagger: the latest 2.
 1.x has a key feature (as seen below) that didn't make it to 2.x.  If you don't need that feature
 then use 2.x.
 
-## Version 2.2, UNRELEASED
+## Version 2.2, December 16th, 2015
 
 Compatible with Solr 5.2
 
