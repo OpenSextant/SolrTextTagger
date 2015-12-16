@@ -113,8 +113,8 @@ class TermPrefixCursor {
         return false;
 
       case FOUND:
-        postingsEnum = termsEnum.postings(liveDocs, postingsEnum, PostingsEnum.NONE);
-        docIds = postingsEnumToIntsRef(postingsEnum);
+        postingsEnum = termsEnum.postings(postingsEnum, PostingsEnum.NONE);
+        docIds = postingsEnumToIntsRef(postingsEnum, liveDocs);
         if (docIds.length > 0) {
           return true;
         }
@@ -146,7 +146,7 @@ class TermPrefixCursor {
 
   /** Returns an IntsRef either cached or reading postingsEnum. Not null.
    * @param postingsEnum*/
-  private IntsRef postingsEnumToIntsRef(PostingsEnum postingsEnum) throws IOException {
+  private IntsRef postingsEnumToIntsRef(PostingsEnum postingsEnum, Bits liveDocs) throws IOException {
     // (The cache can have empty IntsRefs)
 
     //lookup prefixBuf in a cache
@@ -161,6 +161,9 @@ class TermPrefixCursor {
     docIds = new IntsRef(termsEnum.docFreq());
     int docId;
     while ((docId = postingsEnum.nextDoc()) != PostingsEnum.NO_MORE_DOCS) {
+      if (liveDocs != null && !liveDocs.get(postingsEnum.docID())) {
+        continue;
+      }
       docIds.ints[docIds.length++] = docId;
     }
     if (docIds.length == 0)

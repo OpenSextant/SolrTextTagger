@@ -3,10 +3,10 @@ language: java
 script: mvn -Drandomized.multiplier=10 -Dsolr.version=$SOLR_VERSION -Dlog.level=WARN clean verify
 
 jdk:
-  - openjdk7
+  - oraclejdk7
 env:
 # see pom.xml for notes on previous versions
-  - SOLR_VERSION=5.2.1
+  - SOLR_VERSION=5.3.1
 
 notifications:
   email:
