@@ -25,7 +25,7 @@
 
   <groupId>org.opensextant</groupId>
   <artifactId>solr-text-tagger</artifactId>
-  <version>2.2-SNAPSHOT</version>
+  <version>2.2</version>
   <packaging>jar</packaging>
 
   <name>Solr Text Tagger</name>
@@ -41,7 +41,7 @@
     <connection>scm:git:https://github.com/OpenSextant/SolrTextTagger.git</connection>
     <developerConnection>scm:git:https://github.com/OpenSextant/SolrTextTagger.git</developerConnection>
     <url>https://github.com/OpenSextant/SolrTextTagger.git</url>
-    <tag>HEAD</tag>
+    <tag>solr-text-tagger-2.2</tag>
   </scm>
 
   <licenses>
