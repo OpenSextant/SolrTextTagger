@@ -117,7 +117,7 @@ For tagging, you HTTP POST data to Solr similar to how the ExtractingRequestHand
 (Tika) is invoked.  A request invoked via the "curl" program could look like this:
 
     curl -XPOST \
-      'http://localhost:8983/solr/tag?overlaps=NO_SUB&tagsLimit=5000&fl=*' \
+      'http://localhost:8983/solr/collection1/tag?overlaps=NO_SUB&tagsLimit=5000&fl=*' \
       -H 'Content-Type:text/plain' -d @/mypath/myfile.txt
 
 ### The tagger request-time parameters are
