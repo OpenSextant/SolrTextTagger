@@ -116,6 +116,10 @@ public class TaggerRequestHandler extends RequestHandlerBase {
     final int tagsLimit = req.getParams().getInt(TAGS_LIMIT, 1000);
     final boolean addMatchText = req.getParams().getBool(MATCH_TEXT, false);
     final SchemaField idSchemaField = req.getSchema().getUniqueKeyField();
+    if (idSchemaField == null) {
+      throw new SolrException(SolrException.ErrorCode.SERVER_ERROR, "The tagger requires a" +
+              "uniqueKey in the schema.");//TODO this could be relaxes
+    }
     final boolean skipAltTokens = req.getParams().getBool(SKIP_ALT_TOKENS, false);
     final boolean ignoreStopWords = req.getParams().getBool(IGNORE_STOPWORDS,
             fieldHasIndexedStopFilter(indexedField, req));
