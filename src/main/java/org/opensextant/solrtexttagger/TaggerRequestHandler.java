@@ -159,12 +159,11 @@ public class TaggerRequestHandler extends RequestHandlerBase {
 
     try {
       Analyzer analyzer = req.getSchema().getField(indexedField).getType().getQueryAnalyzer();
-      TokenStream tokenStream = analyzer.tokenStream("", inputReader);
-      try {
+      try (TokenStream tokenStream = analyzer.tokenStream("", inputReader)) {
         Terms terms = searcher.getLeafReader().terms(indexedField);
         if (terms == null)
           throw new SolrException(SolrException.ErrorCode.BAD_REQUEST,
-              "field "+indexedField+" has no indexed data");
+                  "field " + indexedField + " has no indexed data");
         Tagger tagger = new Tagger(terms, computeDocCorpus(req), tokenStream, tagClusterReducer,
                 skipAltTokens, ignoreStopWords) {
           @SuppressWarnings("unchecked")
@@ -193,10 +192,10 @@ public class TaggerRequestHandler extends RequestHandlerBase {
             tags.add(tag);
           }
 
-          Map<Object,List> docIdsListCache = new HashMap<Object, List>(2000);
+          Map<Object, List> docIdsListCache = new HashMap<>(2000);
 
           ValueSourceAccessor uniqueKeyCache = new ValueSourceAccessor(searcher,
-              idSchemaField.getType().getValueSource(idSchemaField, null));
+                  idSchemaField.getType().getValueSource(idSchemaField, null));
 
           @SuppressWarnings("unchecked")
           private List lookupSchemaDocIds(Object docIdsKey) {
@@ -220,8 +219,6 @@ public class TaggerRequestHandler extends RequestHandlerBase {
         };
         tagger.enableDocIdsCache(2000);//TODO configurable
         tagger.process();
-      } finally {
-        tokenStream.close();
       }
     } finally {
       inputReader.close();
@@ -244,14 +241,14 @@ public class TaggerRequestHandler extends RequestHandlerBase {
         //comma delimited list
         nonTaggableTags = nonTaggableTags.toLowerCase(Locale.ROOT);
         final String[] strings = nonTaggableTags.split(",");
-        nonTaggableTagSet = new HashSet<String>(strings.length);
+        nonTaggableTagSet = new HashSet<>(strings.length);
         Collections.addAll(nonTaggableTagSet, strings);
       }
       try {
         offsetCorrector = new HtmlOffsetCorrector(inputString, nonTaggableTagSet);
       } catch (Exception e) {
         throw new SolrException(SolrException.ErrorCode.BAD_REQUEST,
-                "Expecting HTML but wasn't: " + e.toString(), e);
+                "Expecting HTML but wasn't: " + e, e);
       }
     } else if (xmlOffsetAdjust) {
       if (nonTaggableTags != null)
@@ -261,7 +258,7 @@ public class TaggerRequestHandler extends RequestHandlerBase {
         offsetCorrector = new XmlOffsetCorrector(inputString);
       } catch (XMLStreamException e) {
         throw new SolrException(SolrException.ErrorCode.BAD_REQUEST,
-                "Expecting XML but wasn't: " + e.toString(), e);
+                "Expecting XML but wasn't: " + e, e);
       }
     } else {
       offsetCorrector = null;
@@ -277,7 +274,7 @@ public class TaggerRequestHandler extends RequestHandlerBase {
     //  Ideally an implementation of DocList could be directly implemented off
     //  of a BitSet, but there are way too many methods to implement for a minor
     //  payoff.
-    int matchDocs = (int) matchDocIdsBS.cardinality();
+    int matchDocs = matchDocIdsBS.cardinality();
     int[] docIds = new int[ Math.min(rows, matchDocs) ];
     DocIdSetIterator docIdIter = new BitSetIterator(matchDocIdsBS, 1);
     for (int i = 0; i < docIds.length; i++) {
@@ -362,7 +359,7 @@ public class TaggerRequestHandler extends RequestHandlerBase {
    */
   private void setTopInitArgsAsInvariants(SolrQueryRequest req) {
     // First convert top level initArgs to SolrParams
-    HashMap<String,String> map = new HashMap<String,String>(initArgs.size());
+    HashMap<String,String> map = new HashMap<>(initArgs.size());
     for (int i=0; i<initArgs.size(); i++) {
       Object val = initArgs.getVal(i);
       if (val != null && !(val instanceof NamedList))

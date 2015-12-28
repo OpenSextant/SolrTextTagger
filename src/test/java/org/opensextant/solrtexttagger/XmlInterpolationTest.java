@@ -1,12 +1,10 @@
 package org.opensextant.solrtexttagger;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.charfilter.HTMLStripCharFilter;
 import org.apache.lucene.analysis.core.WhitespaceTokenizer;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
-import org.apache.lucene.util.LuceneTestCase;
 import org.apache.solr.common.SolrException;
 import org.apache.solr.request.SolrQueryRequest;
 import org.apache.solr.response.SolrQueryResponse;
@@ -76,8 +74,7 @@ public class XmlInterpolationTest extends AbstractTaggerTest {
   }
 
   protected void assertXmlTag(String docText, boolean expected) throws Exception {
-    final SolrQueryRequest req = reqDoc(docText);
-    try {
+    try (SolrQueryRequest req = reqDoc(docText)) {
       final SolrQueryResponse rsp = h.queryAndResponse(req.getParams().get("qt"), req);
       final TestTag[] testTags = pullTagsFromResponse(req, rsp);
       if (!expected) {
@@ -87,8 +84,6 @@ public class XmlInterpolationTest extends AbstractTaggerTest {
         final TestTag tag = testTags[0];
         validateXml(insertAnchorAtOffsets(docText, tag.startOffset, tag.endOffset, tag.docName));
       }
-    } finally {
-      req.close();
     }
   }
 
@@ -179,7 +174,7 @@ public class XmlInterpolationTest extends AbstractTaggerTest {
   }
 
   private String[] analyzeReturnTokens(String docText) {
-    List<String> result = new ArrayList<String>();
+    List<String> result = new ArrayList<>();
 
     Reader filter = new HTMLStripCharFilter(new StringReader(docText),
             Collections.singleton("unescaped"));

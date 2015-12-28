@@ -139,7 +139,7 @@ public abstract class AbstractTaggerTest extends SolrTestCaseJ4 {
   @SuppressWarnings("unchecked")
   protected TestTag[] pullTagsFromResponse(SolrQueryRequest req, SolrQueryResponse rsp ) throws IOException {
     NamedList rspValues = rsp.getValues();
-    Map<String, String> matchingNames = new HashMap<String, String>();
+    Map<String, String> matchingNames = new HashMap<>();
     SolrIndexSearcher searcher = req.getSearcher();
     DocList docList = (DocList) rspValues.get("response");
     DocIterator iter = docList.iterator();
@@ -193,13 +193,13 @@ public abstract class AbstractTaggerTest extends SolrTestCaseJ4 {
     }
     if (error == null)
       return;
-    TreeSet<Object> expectedRemaining = new TreeSet<Object>(Arrays.asList(expecteds));
+    TreeSet<Object> expectedRemaining = new TreeSet<>(Arrays.asList(expecteds));
     expectedRemaining.removeAll(Arrays.asList(actuals));
     if (!expectedRemaining.isEmpty())
-      fail(message+": didn't find expected "+expectedRemaining.first()+" (of "+expectedRemaining.size()+"); "+error.toString());
-    TreeSet<Object> actualsRemaining = new TreeSet<Object>(Arrays.asList(actuals));
+      fail(message+": didn't find expected "+expectedRemaining.first()+" (of "+expectedRemaining.size()+"); "+ error);
+    TreeSet<Object> actualsRemaining = new TreeSet<>(Arrays.asList(actuals));
     actualsRemaining.removeAll(Arrays.asList(expecteds));
-    fail(message+": didn't expect "+actualsRemaining.first()+" (of "+actualsRemaining.size()+"); "+error.toString());
+    fail(message+": didn't expect "+actualsRemaining.first()+" (of "+actualsRemaining.size()+"); "+ error);
   }
 
   class TestTag implements Comparable {

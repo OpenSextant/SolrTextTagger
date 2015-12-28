@@ -50,7 +50,7 @@ public class RandomizedTaggerTest extends AbstractTaggerTest {
   public void test() throws Exception {
     final Random R = random();
 
-    Set<String> names = new HashSet<String>();
+    Set<String> names = new HashSet<>();
     //random list of single-word names
     final int NUM_SINGLES = 4;//RandomInts.randomIntBetween(R, 1, 5);
     for (int i = 0; i < NUM_SINGLES; i++) {
@@ -123,7 +123,7 @@ public class RandomizedTaggerTest extends AbstractTaggerTest {
     baseParams.set("overlaps", "ALL");
 
     //loop through NAMES and find all tag offsets
-    List<TestTag> testTags = new ArrayList<TestTag>();
+    List<TestTag> testTags = new ArrayList<>();
     for (String name : NAMES) {
       String spaceName = " "+name+" ";
       int off = 0;

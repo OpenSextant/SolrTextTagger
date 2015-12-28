@@ -22,7 +22,6 @@
 
 package org.opensextant.solrtexttagger;
 
-import org.apache.commons.lang.math.RandomUtils;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;

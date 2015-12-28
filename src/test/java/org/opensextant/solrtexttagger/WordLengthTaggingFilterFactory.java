@@ -41,9 +41,7 @@ public class WordLengthTaggingFilterFactory extends TokenFilterFactory {
     super(args);
     int minLength = -1;
     Object value = args.get(MIN_LENGTH);
-    if (value instanceof Number) {
-      minLength = ((Number) value).intValue();
-    } else if (value != null) {
+    if (value != null) {
       try {
         minLength = Integer.parseInt(value.toString());
       } catch (NumberFormatException e) {
@@ -56,7 +54,7 @@ public class WordLengthTaggingFilterFactory extends TokenFilterFactory {
       this.minLength = null;
     } else {
       log.info("set minLength={}", minLength);
-      this.minLength = Integer.valueOf(minLength);
+      this.minLength = minLength;
     }
   }
 

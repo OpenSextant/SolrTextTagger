@@ -112,7 +112,7 @@ public class EmbeddedSolrNoSerializeTest extends SolrTestCaseJ4 {
     QueryRequest req = new SolrTaggerRequest(params, input);
     req.setPath("/tag");
 
-    final AtomicReference<SolrDocument> refDoc = new AtomicReference<SolrDocument>();
+    final AtomicReference<SolrDocument> refDoc = new AtomicReference<>();
     req.setStreamingResponseCallback(new StreamingResponseCallback() {
       @Override
       public void streamSolrDocument(SolrDocument doc) {
