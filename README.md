@@ -33,6 +33,10 @@ Pertaining to Lucene's Finite State Transducers:
 
   * David Smiley
   * Rupert Westenthaler   (notably the PhraseBuilder in the 1.1 branch)
+  
+## Quick Start
+
+See the [QUICK_START.md](QUICK_START.md) file for a set of instructions to get you going ASAP.
 
 ## Build Instructions
 
@@ -73,11 +77,8 @@ that has largely been overcome in the 1.1 version but it has yet to be ported to
 [Issue #20, RE the PhraseBuilder](https://github.com/OpenSextant/SolrTextTagger/issues/20)
 
 To make the tagger work as fast as possible, configure the name field with
-<i>postingsFormat="Memory";</i> you'll have to add this to <i>solrconfig.xml</i> to use that
-advanced Solr feature.  In doing so, all the terms/postings are placed into an efficient FST
+<i>postingsFormat="Memory";</i>.  In doing so, all the terms/postings are placed into an efficient FST
 data structure.
-
-    <codecFactory name="CodecFactory" class="solr.SchemaCodecFactory" />
 
 Here is a sample field type config that should work quite well:
 
@@ -110,6 +111,12 @@ A Solr solrconfig.xml needs a special request handler, configured like this.
 
  * field: The field that represents the corpus to match on, as described above.
  * fq: (optional) A query that matches a subset of documents for name matching.
+
+Also, ensure that your solrconfig.xml has a codecFactory defined like this:
+
+    <codecFactory name="CodecFactory" class="solr.SchemaCodecFactory" />
+
+That's usually the case in Solr 5.  It enables us to set the postingsFormat.
 
 ## Usage
 
