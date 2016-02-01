@@ -122,7 +122,7 @@ should be almost 7MB file expanding to a cities1000.txt file around 22.2MB conta
 each a city in the world of at least 1000 population.
 
 ````
-curl -X POST --data-binary=@/path/to/cities1000.txt -H 'Content-type:application/csv' \
+curl -X POST --data-binary @/path/to/cities1000.txt -H 'Content-type:application/csv' \
   'http://localhost:8983/solr/geonames/update?commit=true&optimize=true&separator=%09&encapsulator=%00&fieldnames=id,name,,alternative_names,latitude,longitude,,,countrycode,,,,,,population,elevation,,timezone,lastupdate'
 ````
 
