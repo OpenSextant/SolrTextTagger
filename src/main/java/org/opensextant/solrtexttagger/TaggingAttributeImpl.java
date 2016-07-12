@@ -23,6 +23,7 @@
 package org.opensextant.solrtexttagger;
 
 import org.apache.lucene.util.AttributeImpl;
+import org.apache.lucene.util.AttributeReflector;
 
 /**
  * Implementation of the {@link TaggingAttribute}
@@ -70,6 +71,11 @@ public class TaggingAttributeImpl extends AttributeImpl implements TaggingAttrib
   @Override
   public void copyTo(AttributeImpl target) {
     ((TaggingAttribute) target).setTaggable(taggable);
+  }
+
+  @Override
+  public void reflectWith(AttributeReflector reflector) {
+    reflector.reflect(TaggingAttribute.class, "taggable", isTaggable());
   }
 
 }
