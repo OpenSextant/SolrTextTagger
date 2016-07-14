@@ -6,7 +6,7 @@ then use 2.x.
 
 ## Version 2.3, UNRELEASED
 
-Compatible with Solr 5.3, 5.4, ...?
+Compatible with Solr 5.3, 5.4, 5.5, 6.0, 6.1?
 
 Compiled for Java 1.7.
 
