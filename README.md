@@ -41,7 +41,7 @@ See the [QUICK_START.md](QUICK_START.md) file for a set of instructions to get y
 
 ## Build Instructions
 
-The build requires Maven, although an out-dated Ant build file remains.
+The build requires Maven.
 
 To compile and run tests, use:
 
@@ -50,7 +50,6 @@ To compile and run tests, use:
 To compile, test, and build the jar (placed in target/), use
 
     %> mvn package
-
 
 ## Configuration
 
