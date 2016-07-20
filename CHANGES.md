@@ -4,6 +4,16 @@ NOTE: There are two independent recommended version of the tagger: the latest 2.
 1.x has a key feature (as seen below) that didn't make it to 2.x.  If you don't need that feature
 then use 2.x.
 
+The [.travis.yml file](.travis.yml) shows the testing version matrix
+on master. Older releases will show older tested releases working at
+those times.
+
+## Version 2.4-SNAPSHOT (unreleased)
+
+Compatible with Solr 6.0, 6.1, ...?
+
+Compiled for Java 1.8.
+
 ## Version 2.3, July 20th, 2016
 
 Compatible with Solr 5.3, 5.4, 5.5.
