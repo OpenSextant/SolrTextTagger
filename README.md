@@ -176,3 +176,8 @@ Solr documents referenced by those tags.  Each tag has the starting character
 offset, an ending character (+1) offset, and the Solr unique key field value.
 The Solr documents part of the response is Solr's standard search results
 format.
+
+## Advanced Tips
+
+* For reducing tagging latency even further, consider embedding Solr with
+ EmbeddedSolrServer.  See EmbeddedSolrNoSerializeTest.
