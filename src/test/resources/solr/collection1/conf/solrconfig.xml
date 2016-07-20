@@ -74,6 +74,4 @@
     <str name="field">name_tagXml</str>
   </requestHandler>
 
-  <requestHandler name="/update" class="solr.UpdateRequestHandler" />
-
 </config>
