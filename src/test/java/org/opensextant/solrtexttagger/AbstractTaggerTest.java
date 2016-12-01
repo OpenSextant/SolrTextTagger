@@ -171,8 +171,13 @@ public abstract class AbstractTaggerTest extends SolrTestCaseJ4 {
 
   /** REMEMBER to close() the result req object. */
   protected SolrQueryRequest reqDoc(String doc, String... moreParams) {
+    return reqDoc(doc, params(moreParams));
+  }
+
+  /** REMEMBER to close() the result req object. */
+  protected SolrQueryRequest reqDoc(String doc, SolrParams moreParams) {
     log.debug("Test doc: "+doc);
-    SolrParams params = SolrParams.wrapDefaults(params(moreParams), baseParams);
+    SolrParams params = SolrParams.wrapDefaults(moreParams, baseParams);
     SolrQueryRequestBase req = new SolrQueryRequestBase(h.getCore(), params) {};
     Iterable<ContentStream> stream = Collections.singleton((ContentStream)new ContentStreamBase.StringStream(doc));
     req.setContentStreams(stream);

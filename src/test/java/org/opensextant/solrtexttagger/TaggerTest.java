@@ -22,9 +22,14 @@
 
 package org.opensextant.solrtexttagger;
 
+import org.apache.solr.common.params.CommonParams;
+import org.apache.solr.common.params.ModifiableSolrParams;
 import org.apache.solr.request.SolrQueryRequest;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import java.util.Arrays;
+import java.util.stream.Collectors;
 
 /**
  * The original test for {@link org.opensextant.solrtexttagger.TaggerRequestHandler}.
@@ -224,7 +229,49 @@ public class TaggerTest extends AbstractTaggerTest {
         tt(doc, "City of London", 0, N.City_of_London),
         tt(doc, "London", 0, N.London));
   }
-  
+
+  @Test
+  public void testMultipleFilterQueries() throws Exception {
+    baseParams.set("qt", "/tag");
+    baseParams.set("overlaps", "ALL");
+
+    // build up the corpus with some additional fields for filtering purposes
+    deleteByQueryAndGetVersion("*:*", null);
+
+    int i = 0;
+    assertU(adoc("id", ""+i++, "name", N.London.getName(), "type", "city", "country", "UK"));
+    assertU(adoc("id", ""+i++, "name", N.London_Business_School.getName(), "type", "school", "country", "UK"));
+    assertU(adoc("id", ""+i++, "name", N.Boston.getName(), "type", "city", "country", "US"));
+    assertU(adoc("id", ""+i++, "name", N.City_of_London.getName(), "type", "org", "country", "UK"));
+    assertU(commit());
+
+    // not calling buildNames so that we can bring along extra attributes for filtering
+    NAMES = Arrays.stream(N.values()).map(N::getName).collect(Collectors.toList());
+
+    // phrase that matches everything
+    String doc = "City of London Business School in Boston";
+
+    // first do no filtering
+    ModifiableSolrParams p = new ModifiableSolrParams();
+    p.add(CommonParams.Q, "*:*");
+    assertTags(reqDoc(doc, p),
+        tt(doc, "City of London", 0, N.City_of_London),
+        tt(doc, "London", 0, N.London),
+        tt(doc, "London Business School", 0, N.London_Business_School),
+        tt(doc, "Boston", 0, N.Boston));
+
+    // add a single fq
+    p.add(CommonParams.FQ, "type:city");
+    assertTags(reqDoc(doc, p),
+        tt(doc, "London", 0, N.London),
+        tt(doc, "Boston", 0, N.Boston));
+
+    // add another fq
+    p.add(CommonParams.FQ, "country:US");
+    assertTags(reqDoc(doc, p),
+        tt(doc, "Boston", 0, N.Boston));
+  }
+
   private TestTag tt(String doc, String substring, int substringIndex, N name) {
     assert substringIndex == 0;
 
