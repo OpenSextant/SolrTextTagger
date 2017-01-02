@@ -164,7 +164,7 @@ public class TaggerRequestHandler extends RequestHandlerBase {
     try {
       Analyzer analyzer = req.getSchema().getField(indexedField).getType().getQueryAnalyzer();
       try (TokenStream tokenStream = analyzer.tokenStream("", inputReader)) {
-        Terms terms = searcher.getLeafReader().terms(indexedField);
+        Terms terms = searcher.getSlowAtomicReader().terms(indexedField);
         if (terms == null)
           throw new SolrException(SolrException.ErrorCode.BAD_REQUEST,
                   "field " + indexedField + " has no indexed data");
@@ -340,7 +340,7 @@ public class TaggerRequestHandler extends RequestHandlerBase {
         };
       }
     } else {
-      docBits = searcher.getLeafReader().getLiveDocs();
+      docBits = searcher.getSlowAtomicReader().getLiveDocs();
     }
     return docBits;
   }

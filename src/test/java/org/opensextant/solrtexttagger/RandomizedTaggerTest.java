@@ -23,7 +23,7 @@
 package org.opensextant.solrtexttagger;
 
 import com.carrotsearch.randomizedtesting.annotations.Repeat;
-import com.carrotsearch.randomizedtesting.generators.RandomInts;
+import com.carrotsearch.randomizedtesting.generators.RandomNumbers;
 import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 import com.carrotsearch.randomizedtesting.generators.RandomStrings;
 import org.junit.BeforeClass;
@@ -63,7 +63,7 @@ public class RandomizedTaggerTest extends AbstractTaggerTest {
     //add random list of multi-word names, partially including existing names
     final int NUM_MULTI = 10;
     for (int i = 0; i < NUM_MULTI; i++) {
-      final int numWords = RandomInts.randomIntBetween(R, 2, 4);
+      final int numWords = RandomNumbers.randomIntBetween(R, 2, 4);
       StringBuilder buf = new StringBuilder();
       for (int j = 0; j < numWords; j++) {
         if (j != 0)
