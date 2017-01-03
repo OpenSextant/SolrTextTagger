@@ -27,6 +27,7 @@ import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.core.StopFilterFactory;
 import org.apache.lucene.analysis.util.TokenFilterFactory;
+import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.ReaderUtil;
 import org.apache.lucene.index.Terms;
@@ -66,6 +67,10 @@ import javax.xml.stream.XMLStreamException;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -101,6 +106,47 @@ public class TaggerRequestHandler extends RequestHandlerBase {
 
   private final Logger log = LoggerFactory.getLogger(getClass());
 
+  /*
+   * solr-text-tagger issue #60: With [SOLR-9592] (lucene/solr 6.3.0) the name of the
+   * getter for the LeafReader changed. So we need to use reflection to support
+   * both <= 6.2.1 and > 6.3.0 versions with the same solr-text-tagger release
+   */
+  private static final Method INDEX_SEARCHER_READ_LEAFS;
+  private static final String SOLR_6_3_LEAF_READER_GETTER_NAME = "getSlowAtomicReader";
+  private static final String SOLR_LEAF_READER_GETTER_NAME = "getLeafReader";
+  
+  static {
+    INDEX_SEARCHER_READ_LEAFS = AccessController.doPrivileged(new PrivilegedAction<Method>() {
+
+      @Override
+      public Method run() {
+        try {
+          return SolrIndexSearcher.class.getMethod(SOLR_6_3_LEAF_READER_GETTER_NAME);
+        } catch(NoSuchMethodException e){
+          try {
+            return SolrIndexSearcher.class.getMethod(SOLR_LEAF_READER_GETTER_NAME);
+          } catch(NoSuchMethodException e1){
+            throw new IllegalStateException("Unsupported Solr Version: Unable to determine "
+                + "getter name for the LeafReader property (expected: '"+ SOLR_LEAF_READER_GETTER_NAME
+                + "' (for < 6.3.0),  '" + SOLR_6_3_LEAF_READER_GETTER_NAME + "' (for >= 6.3.0)!");
+          }
+        }
+      }
+    });
+  }
+  
+  private static LeafReader getLeafReader(SolrIndexSearcher searcher){
+    try {
+      return LeafReader.class.cast(INDEX_SEARCHER_READ_LEAFS.invoke(searcher));
+    } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+        throw new IllegalStateException("Unable to call getter for the LeafReader property for on"
+                + "the parsed " + searcher, e);
+    }
+  }
+  /*
+   * solr-text-tagger issue #60 END
+   */
+  
   @Override
   public void handleRequestBody(SolrQueryRequest req, SolrQueryResponse rsp) throws Exception {
     setTopInitArgsAsInvariants(req);
@@ -164,7 +210,7 @@ public class TaggerRequestHandler extends RequestHandlerBase {
     try {
       Analyzer analyzer = req.getSchema().getField(indexedField).getType().getQueryAnalyzer();
       try (TokenStream tokenStream = analyzer.tokenStream("", inputReader)) {
-        Terms terms = searcher.getLeafReader().terms(indexedField);
+        Terms terms = getLeafReader(searcher).terms(indexedField);
         if (terms == null)
           throw new SolrException(SolrException.ErrorCode.BAD_REQUEST,
                   "field " + indexedField + " has no indexed data");
@@ -337,7 +383,7 @@ public class TaggerRequestHandler extends RequestHandlerBase {
         };
       }
     } else {
-      docBits = searcher.getLeafReader().getLiveDocs();
+      docBits = getLeafReader(searcher).getLiveDocs();
     }
     return docBits;
   }
