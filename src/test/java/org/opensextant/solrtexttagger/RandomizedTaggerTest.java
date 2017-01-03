@@ -23,12 +23,13 @@
 package org.opensextant.solrtexttagger;
 
 import com.carrotsearch.randomizedtesting.annotations.Repeat;
-import com.carrotsearch.randomizedtesting.generators.RandomInts;
 import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 import com.carrotsearch.randomizedtesting.generators.RandomStrings;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -45,7 +46,33 @@ public class RandomizedTaggerTest extends AbstractTaggerTest {
   public static void beforeClass() throws Exception {
     initCore("solrconfig.xml", "schema.xml");
   }
-
+  /*
+   * Helper method to account for an API change inbetween version <code>2.3.4</code> and
+   * <code>2.4.0</code> of com.carrotsearch.randomizedtesting:randomizedtesting-runner</code>.
+   * Solr <code>6.2.1</code> depends on the older API while Solr <code>6.3.0</code> uses the
+   * new one. As we want to support both we need to use reflection.
+   * TODO: remove this when Solr >= 6.3.0 is minimum required
+   */
+  private int randomIntBetween(Random r, int min, int max){
+    Class generator;
+    try {
+      generator = Class.forName("com.carrotsearch.randomizedtesting.generators.RandomNumbers");
+    } catch (ClassNotFoundException e) {
+      try {
+        generator = Class.forName("com.carrotsearch.randomizedtesting.generators.RandomInts");
+      } catch (ClassNotFoundException e1) {
+        throw new IllegalStateException("Unable to find 'com.carrotsearch.randomizedtesting.generators.RandomNumbers' "
+            + "nor 'com.carrotsearch.randomizedtesting.generators.RandomInts'");
+      }
+    }
+    try {
+      Method m = generator.getMethod("randomIntBetween", Random.class, Integer.TYPE, Integer.TYPE);
+      return Integer.class.cast(m.invoke(generator, r,min,max)).intValue();
+    } catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+      throw new IllegalStateException("Unable to call "+generator.getName()+"#randomIntBetween(Random,int,int)", e);
+    }
+  }
+  
   @Test
   public void test() throws Exception {
     final Random R = random();
@@ -63,7 +90,7 @@ public class RandomizedTaggerTest extends AbstractTaggerTest {
     //add random list of multi-word names, partially including existing names
     final int NUM_MULTI = 10;
     for (int i = 0; i < NUM_MULTI; i++) {
-      final int numWords = RandomInts.randomIntBetween(R, 2, 4);
+      final int numWords = randomIntBetween(R, 2, 4);
       StringBuilder buf = new StringBuilder();
       for (int j = 0; j < numWords; j++) {
         if (j != 0)
