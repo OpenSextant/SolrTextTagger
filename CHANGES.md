@@ -8,9 +8,13 @@ The [.travis.yml file](.travis.yml) shows the current testing version matrix
 on master.  Older releases will show older tested releases working at
 those times.
 
-## Version 2.4-SNAPSHOT (unreleased)
+## Version 2.5-SNAPSHOT (unreleased)
 
-Compatible with Solr 6.3, 6.4, ... ?
+TBD
+
+## Version 2.4, February 11th, 2017
+
+Compatible with Solr 6.3, 6.4.1, ... ?
 
 Compiled for Java 1.8.
 
