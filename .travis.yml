@@ -10,6 +10,7 @@ jdk:
 env:
 # see pom.xml for notes on previous versions
   - SOLR_VERSION=6.3.0
+  - SOLR_VERSION=6.4.1
 
 notifications:
   email:

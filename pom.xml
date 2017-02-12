@@ -68,9 +68,9 @@
      For Solr 5.0 - 5.1,        use tagger version 2.1, tag: solr-text-tagger-2.1
      For Solr 5.2,              use tagger version 2.2, tag: solr-text-tagger-2.2
      For Solr 5.3 - 6.2.1       use tagger version 2.3, tag: solr-text-tagger-2.3
-     For Solr 6.3               use tagger version 2.4-SNAPSHOT
+     For Solr 6.3 +             use tagger version 2.4
     -->
-    <solr.version>6.3.0</solr.version>
+    <solr.version>6.4.1</solr.version>
   </properties>
 
   <prerequisites>
