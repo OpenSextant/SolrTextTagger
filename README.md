@@ -41,7 +41,7 @@ See the [QUICK_START.md](QUICK_START.md) file for a set of instructions to get y
 
 ## Build Instructions
 
-The build requires Maven.
+The build requires Java and Maven.
 
 To compile and run tests, use:
 
@@ -55,7 +55,7 @@ To compile, test, and build the jar (placed in target/), use
 
 A Solr schema.xml needs 2 things
 
- * A unique key field  (see <uniqueKey>).
+ * A unique key field  (see `<uniqueKey>`).
  * A name/lookup field indexed with Shingling or more likely ConcatenateFilter.
 
 If you want to support typical keyword search on the names, not just tagging, then index
@@ -109,14 +109,13 @@ A Solr solrconfig.xml needs a special request handler, configured like this.
       </lst>
     </requestHandler>
 
- * field: The field that represents the corpus to match on, as described above.
- * fq: (optional) A query that matches a subset of documents for name matching.
+ * `field`: The field that represents the corpus to match on, as described above.
+ * `fq`: (optional) A query that matches a subset of documents for name matching.
 
-Also, ensure that your solrconfig.xml has a codecFactory defined like this:
+Also, to enable custom so-called postings formats, ensure that your solrconfig.xml has a
+codecFactory defined like this:
 
     <codecFactory name="CodecFactory" class="solr.SchemaCodecFactory" />
-
-That's usually the case in Solr 5.  It enables us to set the postingsFormat.
 
 ## Usage
 
@@ -129,45 +128,45 @@ For tagging, you HTTP POST data to Solr similar to how the ExtractingRequestHand
 
 ### The tagger request-time parameters are
 
- * overlaps: choose the algorithm to determine which overlapping tags should be
+ * `overlaps`: choose the algorithm to determine which overlapping tags should be
  retained, versus being pruned away.  Options are:
-  * ALL: Emit all tags.
-  * NO_SUB: Don't emit a tag that is completely within another tag (i.e. no subtag).
-  * LONGEST_DOMINANT_RIGHT: Given a cluster of overlapping tags, emit the longest
+  * `ALL`: Emit all tags.
+  * `NO_SUB`: Don't emit a tag that is completely within another tag (i.e. no subtag).
+  * `LONGEST_DOMINANT_RIGHT`: Given a cluster of overlapping tags, emit the longest
   one (by character length). If there is a tie, pick the right-most. Remove
   any tags overlapping with this tag then repeat the algorithm to potentially
   find other tags that can be emitted in the cluster.
- * matchText: A boolean indicating whether to return the matched text in the tag
+ * `matchText`: A boolean indicating whether to return the matched text in the tag
  response.  This will trigger the tagger to fully buffer the input before tagging.
- * tagsLimit: The maximum number of tags to return in the response.  Tagging
+ * `tagsLimit`: The maximum number of tags to return in the response.  Tagging
  effectively stops after this point.  By default this is 1000.
- * rows: Solr's standard param to say the maximum number of documents to return,
+ * `rows`: Solr's standard param to say the maximum number of documents to return,
  but defaulting to 10000 for a tag request.
- * skipAltTokens: A boolean flag used to suppress errors that can occur if, for
+ * `skipAltTokens`: A boolean flag used to suppress errors that can occur if, for
  example, you enable synonym expansion at query time in the analyzer, which you
  normally shouldn't do. Let this default to false unless you know that such
  tokens can't be avoided.
- * ignoreStopwords: A boolean flag that causes stopwords (or any condition causing positions to
+ * `ignoreStopwords`: A boolean flag that causes stopwords (or any condition causing positions to
  skip like >255 char words) to be ignored as if it wasn't there. Otherwise, the behavior is to treat
  them as breaks in tagging on the presumption your indexed text-analysis configuration doesn't have
  a StopWordFilter. By default the indexed analysis chain is checked for the presence of a
  StopWordFilter and if found then ignoreStopWords is true if unspecified. You probably shouldn't
  have a StopWordFilter configured and probably won't need to set this param either.
- * xmlOffsetAdjust: A boolean indicating that the input is XML and furthermore that the offsets of
+ * `xmlOffsetAdjust`: A boolean indicating that the input is XML and furthermore that the offsets of
  returned tags should be adjusted as necessary to allow for the client to insert an open and closing
  element at the positions. If it isn't possible to do so then the tag will be omitted. You are
  expected to configure HTMLStripCharFilter in the schema when using this option.
  This will trigger the tagger to fully buffer the input before tagging.
- * htmlOffsetAdjust: Similar to xmlOffsetAdjust except for HTML content that may have various issues
+ * `htmlOffsetAdjust`: Similar to xmlOffsetAdjust except for HTML content that may have various issues
  that would never work with an XML parser. There needn't be a top level element, and some tags
  are known to self-close (e.g. BR). The tagger uses the Jericho HTML Parser for this feature
  (dual LGPL & EPL licensed).
- * nonTaggableTags: (only with htmlOffsetAdjust) Omits tags that would enclose one of these HTML
+ * `nonTaggableTags`: (only with htmlOffsetAdjust) Omits tags that would enclose one of these HTML
  elements. Comma delimited, lower-case. For example 'a' (anchor) would be a likely choice so that
  links the application inserts don't overlap other links.
- * fl: Solr's standard param for listing the fields to return.
+ * `fl`: Solr's standard param for listing the fields to return.
  * Most other standard parameters for working with Solr response formatting:
- echoParams, wt, indent, etc.
+ `echoParams`, `wt`, `indent`, etc.
 
 ### Output
 
