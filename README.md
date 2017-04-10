@@ -16,6 +16,7 @@ see [CHANGES.md](CHANGES.md)
 
 ## Resources / References
 
+* [How-To blog post by Mikołaj Kania at itblues.pl](http://itblues.pl/2017/03/30/extract-entities-with-solr-text-tagger/)
 * [Dictionary Based Annotation at scale with Spark, SolrTextTagger, and OpenNLP (video)](https://www.youtube.com/watch?v=gOe0aYAS8Do)
     ([slides](http://www.slideshare.net/sujitpal/sseu-2015soda))
     -- a presentation by Sujit Pal at Spark Summit Europe 2015
