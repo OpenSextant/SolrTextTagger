@@ -53,14 +53,14 @@
                postingsFormat="Memory" omitTermFreqAndPositions="true" omitNorms="true">
       <analyzer type="index">
         <tokenizer class="solr.StandardTokenizerFactory" />
-        <filter class="solr.ASCIIFoldingFilterFactory"/>
+        <!--Usually good but for our tests, lets not. <filter class="solr.ASCIIFoldingFilterFactory"/>-->
         <filter class="solr.LowerCaseFilterFactory"/>
 
         <filter class="org.opensextant.solrtexttagger.ConcatenateFilterFactory" />
       </analyzer>
       <analyzer type="query">
         <tokenizer class="solr.StandardTokenizerFactory" />
-        <filter class="solr.ASCIIFoldingFilterFactory"/>
+        <!--<filter class="solr.ASCIIFoldingFilterFactory"/>-->
         <filter class="solr.LowerCaseFilterFactory"/>
       </analyzer>
     </fieldType>
@@ -70,7 +70,6 @@
                postingsFormat="Memory" omitTermFreqAndPositions="true" omitNorms="true">
       <analyzer type="index">
         <tokenizer class="solr.StandardTokenizerFactory" />
-        <filter class="solr.ASCIIFoldingFilterFactory"/>
         <filter class="solr.LowerCaseFilterFactory"/>
         <filter class="solr.StopFilterFactory" /><!-- by default english stopwords -->
 
@@ -78,7 +77,6 @@
       </analyzer>
       <analyzer type="query">
         <tokenizer class="solr.StandardTokenizerFactory" />
-        <filter class="solr.ASCIIFoldingFilterFactory"/>
         <filter class="solr.LowerCaseFilterFactory"/>
         <filter class="solr.StopFilterFactory" /><!-- by default english stopwords -->
       </analyzer>
@@ -88,7 +86,6 @@
                postingsFormat="Memory" omitTermFreqAndPositions="true" omitNorms="true">
       <analyzer type="index">
         <tokenizer class="solr.StandardTokenizerFactory" />
-        <filter class="solr.ASCIIFoldingFilterFactory"/>
         <filter class="solr.LowerCaseFilterFactory"/>
 
         <filter class="solr.ShingleFilterFactory"
@@ -96,7 +93,6 @@
       </analyzer>
       <analyzer type="query">
         <tokenizer class="solr.StandardTokenizerFactory" />
-        <filter class="solr.ASCIIFoldingFilterFactory"/>
         <filter class="solr.LowerCaseFilterFactory"/>
       </analyzer>
     </fieldType>
@@ -105,7 +101,6 @@
                postingsFormat="Memory" omitTermFreqAndPositions="true" omitNorms="true">
       <analyzer type="index">
         <tokenizer class="solr.StandardTokenizerFactory" />
-        <filter class="solr.ASCIIFoldingFilterFactory"/>
         <filter class="solr.LowerCaseFilterFactory"/>
 
         <filter class="org.opensextant.solrtexttagger.ConcatenateFilterFactory" />
@@ -113,7 +108,6 @@
       <analyzer type="query">
         <charFilter class="solr.HTMLStripCharFilterFactory" /><!-- ADDED THIS! -->
         <tokenizer class="solr.StandardTokenizerFactory" />
-        <filter class="solr.ASCIIFoldingFilterFactory"/>
         <filter class="solr.LowerCaseFilterFactory"/>
       </analyzer>
     </fieldType>

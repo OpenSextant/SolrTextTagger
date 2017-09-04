@@ -26,6 +26,8 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import java.nio.charset.StandardCharsets;
+
 /**
  * Test the {@link org.opensextant.solrtexttagger.TaggerRequestHandler}.
  */
@@ -35,14 +37,15 @@ public class Tagger2Test extends AbstractTaggerTest {
   public static void beforeClass() throws Exception {
     initCore("solrconfig.xml", "schema.xml");
   }
+
   @Override
   public void setUp() throws Exception {
     super.setUp();
     baseParams.set("overlaps", "LONGEST_DOMINANT_RIGHT");
   }
 
-  @Test
   /** whole matching, no sub-tags */
+  @Test
   public void testLongestDominantRight() throws Exception {
     buildNames("in", "San", "in San", "Francisco", "San Francisco",
         "San Francisco State College", "College of California",
@@ -59,12 +62,12 @@ public class Tagger2Test extends AbstractTaggerTest {
 
   }
 
-  @Test
-  @Ignore
   // As of Lucene/Solr 4.9, StandardTokenizer never does this anymore (reported to Lucene dev-list,
   // Jan 26th 2015.  Honestly it's not particularly important to us but it renders this test
   // pointless.
   /** Orig issue https://github.com/OpenSextant/SolrTextTagger/issues/2  related: #13 */
+  @Test
+  @Ignore
   public void testVeryLongWord() throws Exception {
     String SANFRAN = "San Francisco";
     buildNames(SANFRAN);
@@ -81,9 +84,9 @@ public class Tagger2Test extends AbstractTaggerTest {
     assertTags(reqDoc(doc, "ignoreStopwords", "true"), new TestTag(0, doc.length(), doc, lookupByName(SANFRAN)));
   }
 
-  @Test
   /** Support for stopwords (posInc > 1);
    * discussion: https://github.com/OpenSextant/SolrTextTagger/issues/13 */
+  @Test
   public void testStopWords() throws Exception {
     baseParams.set("qt", "/tagStop");//stop filter (pos inc enabled) index & query
 
@@ -100,6 +103,25 @@ public class Tagger2Test extends AbstractTaggerTest {
             lookupByName(ACITYA)));
     //break on stop words
     assertTags(reqDoc(SOUTHOFWALES, "ignoreStopwords", "false"));//match nothing
+  }
+
+  /** Ensure character offsets work for multi-byte characters */
+  @Test
+  public void testMultibyteChar() throws Exception {
+    //  https://unicode-table.com/en/2019/
+    //             0         1         2         3         4
+    //             01234567890123456789012345678901234567890
+    String TEXT = "He mentionned ’Obama’ in the White House";
+    assertEquals(40, TEXT.length()); // char length
+    assertEquals(8217, TEXT.codePointAt(14));
+    assertEquals(40 + (2 * 2), TEXT.getBytes(StandardCharsets.UTF_8).length);
+    assertEquals(40*2, TEXT.getBytes(StandardCharsets.UTF_16).length);
+
+    buildNames("Obama");
+
+    assertTags(TEXT, "Obama");
+
+    // TODO test surrogate pairs (i.e. code points not in the BMP)
   }
 
 }
