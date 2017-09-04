@@ -112,10 +112,21 @@ public class Tagger2Test extends AbstractTaggerTest {
     //             0         1         2         3         4
     //             01234567890123456789012345678901234567890
     String TEXT = "He mentionned ’Obama’ in the White House";
-    assertEquals(40, TEXT.length()); // char length
-    assertEquals(8217, TEXT.codePointAt(14));
-    assertEquals(40 + (2 * 2), TEXT.getBytes(StandardCharsets.UTF_8).length);
-    assertEquals(40*2, TEXT.getBytes(StandardCharsets.UTF_16).length);
+    assertEquals(40, TEXT.length()); // char length (in Java, UTF16)
+
+    String QUOTE = TEXT.substring(14, 15);
+    assertEquals(8217, QUOTE.codePointAt(0));
+
+    //UTF8
+    assertEquals(3, QUOTE.getBytes(StandardCharsets.UTF_8).length);
+    assertEquals(1, "a".getBytes(StandardCharsets.UTF_8).length);
+    assertEquals(40 + 2*2, TEXT.getBytes(StandardCharsets.UTF_8).length);
+
+    //UTF16 big endian    (by specifying big/little endian, there is no "byte order mark")
+    assertEquals(2, QUOTE.getBytes(StandardCharsets.UTF_16BE).length);
+    assertEquals(2, "a".getBytes(StandardCharsets.UTF_16BE).length);
+    assertEquals(40 * 2, TEXT.getBytes(StandardCharsets.UTF_16BE).length);
+
 
     buildNames("Obama");
 
