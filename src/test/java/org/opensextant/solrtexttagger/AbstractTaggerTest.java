@@ -77,6 +77,7 @@ public abstract class AbstractTaggerTest extends SolrTestCaseJ4 {
     super.setUp();
     baseParams.clear();
     baseParams.set(CommonParams.QT, "/tag");
+    baseParams.set(CommonParams.WT, "xml");
   }
 
   protected void assertTags(String doc, String... tags) throws Exception {

@@ -6,11 +6,12 @@ script: mvn -Drandomized.multiplier=10 -Dsolr.version=$SOLR_VERSION -Dlog.level=
 
 jdk:
   - oraclejdk8
+  - oraclejdk9
 
 env:
 # see pom.xml for notes on previous versions
-  - SOLR_VERSION=6.3.0
-  - SOLR_VERSION=6.4.1
+  - SOLR_VERSION=7.0.1
+  - SOLR_VERSION=7.1.0
 
 notifications:
   email:

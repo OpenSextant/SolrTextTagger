@@ -10,7 +10,7 @@ those times.
 
 ## Version 2.5-SNAPSHOT (unreleased)
 
-TBD
+Compatible with Solr 7.0, 7.1, ...
 
 ## Version 2.4, February 11th, 2017
 

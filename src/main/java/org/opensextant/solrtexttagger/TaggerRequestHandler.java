@@ -211,8 +211,13 @@ public class TaggerRequestHandler extends RequestHandlerBase {
             schemaDocIds = new ArrayList(docIds.length);
             for (int i = docIds.offset; i < docIds.offset + docIds.length; i++) {
               int docId = docIds.ints[i];
+              assert i == docIds.offset || docIds.ints[i - 1] < docId : "not sorted?";
               matchDocIdsBS.set(docId);//also, flip docid in bitset
-              schemaDocIds.add(uniqueKeyCache.objectVal(docId));//translates here
+              try {
+                schemaDocIds.add(uniqueKeyCache.objectVal(docId));//translates here
+              } catch (IOException e) {
+                throw new SolrException(SolrException.ErrorCode.SERVER_ERROR, e);
+              }
             }
             assert !schemaDocIds.isEmpty();
 
@@ -384,49 +389,38 @@ public class TaggerRequestHandler extends RequestHandlerBase {
     return "Processes input text to find matching tokens stored in the index.";
   }
 
-  @Override //little value, esp. with git limitations
-  public String getSource() {
-    return null;
-  }
+  /** See LUCENE-4541 or {@link org.apache.solr.response.transform.ValueSourceAugmenter}. */
+  static class ValueSourceAccessor {
+    private final List<LeafReaderContext> readerContexts;
+    private final ValueSource valueSource;
+    private final Map fContext;
+    private final FunctionValues[] functionValuesPerSeg;
+    private final int[] functionValuesDocIdPerSeg;
 
-}
-
-/** See LUCENE-4541 or {@link org.apache.solr.response.transform.ValueSourceAugmenter}. */
-class ValueSourceAccessor {
-  // implement FunctionValues ?
-  private final List<LeafReaderContext> readerContexts;
-  private final FunctionValues[] docValuesArr;
-  private final ValueSource valueSource;
-  private final Map fContext;
-
-  private int localId;
-  private FunctionValues values;
-
-  public ValueSourceAccessor(IndexSearcher searcher, ValueSource valueSource) {
-    readerContexts = searcher.getIndexReader().leaves();
-    this.valueSource = valueSource;
-    docValuesArr = new FunctionValues[readerContexts.size()];
-    fContext = ValueSource.newContext(searcher);
-  }
-
-  private void setState(int docid) {
-    int idx = ReaderUtil.subIndex(docid, readerContexts);
-    LeafReaderContext rcontext = readerContexts.get(idx);
-    values = docValuesArr[idx];
-    if (values == null) {
-      try {
-        docValuesArr[idx] = values = valueSource.getValues(fContext, rcontext);
-      } catch (IOException e) {
-        throw new SolrException(SolrException.ErrorCode.SERVER_ERROR, e);
-      }
+    ValueSourceAccessor(IndexSearcher searcher, ValueSource valueSource) {
+      readerContexts = searcher.getIndexReader().leaves();
+      this.valueSource = valueSource;
+      fContext = ValueSource.newContext(searcher);
+      functionValuesPerSeg = new FunctionValues[readerContexts.size()];
+      functionValuesDocIdPerSeg = new int[readerContexts.size()];
     }
-    localId = docid - rcontext.docBase;
+
+    Object objectVal(int topDocId) throws IOException {
+      // lookup segment level stuff:
+      int segIdx = ReaderUtil.subIndex(topDocId, readerContexts);
+      LeafReaderContext rcontext = readerContexts.get(segIdx);
+      int segDocId = topDocId - rcontext.docBase;
+      // unfortunately Lucene 7.0 requires forward only traversal (with no reset method).
+      //   So we need to track our last docId (per segment) and re-fetch the FunctionValues. :-(
+      FunctionValues functionValues = functionValuesPerSeg[segIdx];
+      if (functionValues == null || segDocId < functionValuesDocIdPerSeg[segIdx]) {
+        functionValues = functionValuesPerSeg[segIdx] = valueSource.getValues(fContext, rcontext);
+      }
+      functionValuesDocIdPerSeg[segIdx] = segDocId;
+
+      // get value:
+      return functionValues.objectVal(segDocId);
+    }
   }
 
-  public Object objectVal(int docid) {
-    setState(docid);
-    return values.objectVal(localId);
-  }
-
-  //...
 }

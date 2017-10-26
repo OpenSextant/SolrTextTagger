@@ -42,7 +42,7 @@ See the [QUICK_START.md](QUICK_START.md) file for a set of instructions to get y
 
 ## Build Instructions
 
-The build requires Java and Maven.
+The build requires Java (v8 or v9) and Maven.
 
 To compile and run tests, use:
 
