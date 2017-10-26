@@ -56,7 +56,7 @@ To compile, test, and build the jar (placed in target/), use
 
 A Solr schema.xml needs 2 things
 
- * A unique key field  (see `<uniqueKey>`).
+ * A unique key field  (see `<uniqueKey>`).  Setting docValues=true on this field is recommended.
  * A name/lookup field indexed with Shingling or more likely ConcatenateFilter.
 
 If you want to support typical keyword search on the names, not just tagging, then index
