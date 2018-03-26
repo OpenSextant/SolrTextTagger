@@ -8,9 +8,11 @@ The [.travis.yml file](.travis.yml) shows the current testing version matrix
 on master.  Older releases will show older tested releases working at
 those times.
 
-## Version 2.5-SNAPSHOT (unreleased)
+## Version 2.6-SNAPSHOT (unreleased)
 
-Compatible with Solr 7.0, 7.1, ...
+## Version 2.5, March 27th, 2018
+
+Compatible with Solr 7.0, 7.1, 7.2, 7.3, ...
 
 ## Version 2.4, February 11th, 2017
 

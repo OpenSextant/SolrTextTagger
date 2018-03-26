@@ -12,6 +12,7 @@ env:
 # see pom.xml for notes on previous versions
   - SOLR_VERSION=7.0.1
   - SOLR_VERSION=7.1.0
+  - SOLR_VERSION=7.2.1
 
 notifications:
   email:

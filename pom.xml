@@ -63,12 +63,8 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <!-- See CHANGES.md for details on Solr version compatibility, and .travis.yml -->
-    <solr.version>7.1.0</solr.version>
+    <solr.version>7.2.1</solr.version>
   </properties>
-
-  <prerequisites>
-    <maven>3.0.4</maven>
-  </prerequisites>
 
   <dependencies>
 
@@ -358,5 +354,16 @@ mvn org.codehaus.mojo:versions-maven-plugin:2.2:display-dependency-updates
       <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
     </repository>
   </distributionManagement>
+
+  <repositories>
+    <repository>
+      <id>apache.snapshots</id>
+      <name>Apache Snapshot Repository</name>
+      <url>http://repository.apache.org/snapshots</url>
+      <releases>
+        <enabled>false</enabled>
+      </releases>
+    </repository>
+  </repositories>
 
 </project>
