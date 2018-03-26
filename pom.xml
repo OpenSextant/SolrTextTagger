@@ -158,6 +158,20 @@ mvn org.codehaus.mojo:versions-maven-plugin:2.2:display-dependency-updates
         </configuration>
       </plugin>
 
+      <!--
+      Argh: https://issues.apache.org/jira/browse/SOLR-10338?focusedCommentId=16414571
+      -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>2.19.1</version>
+        <configuration>
+          <systemPropertyVariables>
+            <test.solr.allowed.securerandom>NativePRNG</test.solr.allowed.securerandom>
+          </systemPropertyVariables>
+        </configuration>
+      </plugin>
+
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
