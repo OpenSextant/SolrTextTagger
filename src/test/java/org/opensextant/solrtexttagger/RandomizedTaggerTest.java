@@ -143,7 +143,7 @@ public class RandomizedTaggerTest extends AbstractTaggerTest {
   private String randomString() { return randomStringOfLength(1, 1); }
 
   private String randomStringOfLength(int min, int max) {
-    return RandomStrings.randomAsciiOfLengthBetween(random(), min, max).toLowerCase();
+    return RandomStrings.randomAsciiLettersOfLengthBetween(random(), min, max).toLowerCase();
   }
 
 }

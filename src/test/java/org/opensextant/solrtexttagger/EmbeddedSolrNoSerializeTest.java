@@ -95,6 +95,7 @@ public class EmbeddedSolrNoSerializeTest extends SolrTestCaseJ4 {
     }
 
     // Deprecated in 7.2 but should live on until 8.x
+    @SuppressWarnings("deprecation")
     @Override
     public Collection<ContentStream> getContentStreams() {
       return Collections.singleton(new ContentStreamBase.StringStream(input));
