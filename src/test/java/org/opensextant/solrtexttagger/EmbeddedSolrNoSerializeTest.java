@@ -92,11 +92,17 @@ public class EmbeddedSolrNoSerializeTest extends SolrTestCaseJ4 {
       this.input = input;
     }
 
+    // Deprecated in 7.2 but should live on until 8.x
     @Override
     public Collection<ContentStream> getContentStreams() {
-      return Collections.singleton((ContentStream) new ContentStreamBase
-          .StringStream(input));
+      return Collections.singleton(new ContentStreamBase.StringStream(input));
     }
+
+    // As of 7.2.  But won't work until: https://issues.apache.org/jira/browse/SOLR-12142
+//    @Override
+//    public RequestWriter.ContentWriter getContentWriter(String expectedType) {
+//      return new RequestWriter.StringPayloadContentWriter(input, "text/plain; charset=UTF8");
+//    }
   }
 
   @Test
