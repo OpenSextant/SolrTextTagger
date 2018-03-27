@@ -231,7 +231,7 @@ public abstract class AbstractTaggerTest extends SolrTestCaseJ4 {
 
     @Override
     public boolean equals(Object obj) {
-      TestTag that = (Tagger2Test.TestTag) obj;
+      TestTag that = (TestTag) obj;
       return new EqualsBuilder()
           .append(this.startOffset, that.startOffset)
           .append(this.endOffset, that.endOffset)
@@ -246,7 +246,7 @@ public abstract class AbstractTaggerTest extends SolrTestCaseJ4 {
 
     @Override
     public int compareTo(Object o) {
-      TestTag that = (Tagger2Test.TestTag) o;
+      TestTag that = (TestTag) o;
       return new CompareToBuilder()
           .append(this.startOffset, that.startOffset)
           .append(this.endOffset, that.endOffset)
