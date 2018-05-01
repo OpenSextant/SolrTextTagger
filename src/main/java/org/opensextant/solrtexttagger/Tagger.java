@@ -27,7 +27,6 @@ import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
 import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
 import org.apache.lucene.analysis.tokenattributes.TermToBytesRefAttribute;
 import org.apache.lucene.index.Terms;
-import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.IntsRef;
@@ -48,11 +47,10 @@ public abstract class Tagger {
   private final Logger log = LoggerFactory.getLogger(Tagger.class);
 
   private final TokenStream tokenStream;
-  //private final CharTermAttribute termAtt;
-  private final PositionIncrementAttribute posIncAtt;
   private final TermToBytesRefAttribute byteRefAtt;
+  private final PositionIncrementAttribute posIncAtt;
   private final OffsetAttribute offsetAtt;
-  private final TaggingAttribute lookupAtt;
+  private final TaggingAttribute taggingAtt;
 
   private final TagClusterReducer tagClusterReducer;
   private final Terms terms;
@@ -73,11 +71,10 @@ public abstract class Tagger {
     this.tokenStream = tokenStream;
     this.skipAltTokens = skipAltTokens;
     this.ignoreStopWords = ignoreStopWords;
-//    termAtt = tokenStream.addAttribute(CharTermAttribute.class);
     byteRefAtt = tokenStream.addAttribute(TermToBytesRefAttribute.class);
     posIncAtt = tokenStream.addAttribute(PositionIncrementAttribute.class);
     offsetAtt = tokenStream.addAttribute(OffsetAttribute.class);
-    lookupAtt = tokenStream.addAttribute(TaggingAttribute.class);
+    taggingAtt = tokenStream.addAttribute(TaggingAttribute.class);
     tokenStream.reset();
 
     this.tagClusterReducer = tagClusterReducer;
@@ -85,7 +82,7 @@ public abstract class Tagger {
 
   public void enableDocIdsCache(int initSize) {
     if (initSize > 0)
-      docIdsCache = new HashMap<BytesRef, IntsRef>(initSize);
+      docIdsCache = new HashMap<>(initSize);
   }
 
   public void process() throws IOException {
@@ -96,11 +93,10 @@ public abstract class Tagger {
     final TagLL[] head = new TagLL[1];
 
     TermPrefixCursor cursor = null;//re-used
-    TermsEnum termsEnum = null;//re-used
 
-    //boolean switch used to log warnings in case tokens where skipped during
-    //tagging.
+    //boolean switch used to log warnings in case tokens where skipped during tagging.
     boolean skippedTokens = false;
+
     while (tokenStream.incrementToken()) {
       if (log.isTraceEnabled()) {
         log.trace("Token: {}, posInc: {},  offset: [{},{}]",
@@ -138,7 +134,7 @@ public abstract class Tagger {
       //NOTE: we need to lookup tokens if
       // * the LookupAtt is true OR
       // * there are still advancing tags (to find the longest possible match)
-      if(lookupAtt.isTaggable() || head[0] != null){
+      if(taggingAtt.isTaggable() || head[0] != null){
         //-- Lookup the term id from the next token
         term = byteRefAtt.getBytesRef();
         if (term.length == 0) {
@@ -152,16 +148,14 @@ public abstract class Tagger {
       advanceTagsAndProcessClusterIfDone(head, term);
 
       //-- only create new Tags for Tokens we need to lookup
-      if (lookupAtt.isTaggable() && term != null) {
+      if (taggingAtt.isTaggable() && term != null) {
 
         //determine if the terms index has a term starting with the provided term
-        // TODO cache hashcodes of valid first terms (directly from char[]?) to skip lookups?
-        termsEnum = terms.iterator();
-        if (cursor == null)//re-usable
-          cursor = new TermPrefixCursor(termsEnum, liveDocs, docIdsCache);
+        // TODO create a pool of these cursors to reuse them more?  could be trivial impl
+        if (cursor == null)// (else the existing cursor will be re-used)
+          cursor = new TermPrefixCursor(terms.iterator(), liveDocs, docIdsCache);
         if (cursor.advance(term)) {
           TagLL newTail = new TagLL(head, cursor, offsetAtt.startOffset(), offsetAtt.endOffset(), null);
-          termsEnum = null;//because the cursor now "owns" this instance
           cursor = null;//because the new tag now "owns" this instance
           //and add it to the end
           if (head[0] == null) {
@@ -184,8 +178,8 @@ public abstract class Tagger {
 
     if(!loggedSkippedAltTokenWarning && skippedTokens){
       loggedSkippedAltTokenWarning = true; //only log once
-      log.warn("The Tagger skiped some alternate tokens (tokens with posInc == 0) "
-          + "while processing text. This may cause problems with some Analyer "
+      log.warn("The Tagger skipped some alternate tokens (tokens with posInc == 0) "
+          + "while processing text. This may cause problems with some Analyzer "
           + "configurations (e.g. query time synonym expansion). For details see "
           + "https://github.com/OpenSextant/SolrTextTagger/pull/11#issuecomment-24936225");
     }

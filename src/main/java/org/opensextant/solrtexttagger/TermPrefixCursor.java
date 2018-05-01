@@ -40,6 +40,8 @@ class TermPrefixCursor {
   //Note: this could be a lot more efficient if MemoryPostingsFormat supported ordinal lookup.
   // Maybe that could be added to Lucene.
 
+  // TODO add bloom filter of hashcode of first ~ 6 bytes to avoid lookup into terms dict?
+
   private static final byte SEPARATOR_CHAR = ' ';
   private static final IntsRef EMPTY_INTSREF = new IntsRef();
 

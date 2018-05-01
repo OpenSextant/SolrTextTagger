@@ -10,6 +10,8 @@ those times.
 
 ## Version 2.6-SNAPSHOT (unreleased)
 
+* Performance: Avoid calling terms.iterator() when not needed
+
 ## Version 2.5, March 27th, 2018
 
 Compatible with Solr 7.0, 7.1, 7.2, 7.3, ...
