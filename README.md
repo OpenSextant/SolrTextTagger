@@ -23,7 +23,7 @@ see [CHANGES.md](CHANGES.md)
 * [Text Tagging with Finite State Transducers (video)](http://www.youtube.com/watch?v=3kQyYbTyXfc)
     ([slides](http://lucenerevolution.org/wp-content/uploads/2014/08/Text-Tagging-with-Finite-State-Transducers.pdf)) -- a presentation at Lucene Revolution 2013 by David Smiley  (first release about the tagger)
 * [Fuzzy String Matching with SolrTextTagger](http://sujitpal.blogspot.com/2014/02/fuzzy-string-matching-with.html) -- a blog post by Sujit Pal
-* [Tulip](http://dl.acm.org/citation.cfm?id=2634351) -- a winner of the [ERD'14 challenge](http://web-ngram.research.microsoft.com/erd2014/Default.aspx) uses the Text Tagger.
+* [Tulip](http://dl.acm.org/citation.cfm?id=2634351) -- a winner of the [ERD'14 challenge](https://pdfs.semanticscholar.org/91cf/c37d4853bb7214d18ca091f9bfede8b301a0.pdf) uses the Text Tagger.
 
 Pertaining to Lucene's Finite State Transducers:
 
