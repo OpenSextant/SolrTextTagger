@@ -69,9 +69,9 @@ public class TagLL{
    * if there is no value, then it will also be removed.
    *
    *
-   * @param word      The next word (FST ord surrogate); not -1
+   * @param word      The next word or null if at an end
    * @param offset    The last character in word's offset in the underlying
-   *                  stream. If word is -1 then it's meaningless.
+   *                  stream. If word is null then it's meaningless.
    *
    * @return          Whether it advanced or not.
    *
