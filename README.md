@@ -78,12 +78,12 @@ that has largely been overcome in the 1.1 version but it has yet to be ported to
 [Issue #20, RE the PhraseBuilder](https://github.com/OpenSextant/SolrTextTagger/issues/20)
 
 To make the tagger work as fast as possible, configure the name field with
-<i>postingsFormat="Memory";</i>.  In doing so, all the terms/postings are placed into an efficient FST
+<i>postingsFormat="FST50";</i>.  In doing so, all the terms/postings are placed into an efficient FST
 data structure.
 
 Here is a sample field type config that should work quite well:
 
-    <fieldType name="tag" class="solr.TextField" positionIncrementGap="100" postingsFormat="Memory"
+    <fieldType name="tag" class="solr.TextField" positionIncrementGap="100" postingsFormat="FST50"
         omitTermFreqAndPositions="true" omitNorms="true">
       <analyzer type="index">
         <tokenizer class="solr.StandardTokenizerFactory"/>

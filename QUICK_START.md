@@ -63,7 +63,7 @@ minimal -- we just need to declare a field type, 2 fields, and a copy-field.
 The critical part up-front is to define the "tag" field type.  There are many many ways to configure
 text analysis; and we're not going to get into those choices here.  But an important bit is the
 ConcatenateFilterFactory at the end of the index analyzer chain.  Another important bit for
-performance is postingsFormat=Memory (resulting in compact FST based in-memory data structures vs. 
+performance is postingsFormat=FST50 (resulting in compact FST based in-memory data structures vs.
 going to disk every time).
 
 Schema configuration:
@@ -73,7 +73,7 @@ curl -X POST -H 'Content-type:application/json'  http://localhost:8983/solr/geon
   "add-field-type":{
     "name":"tag",
     "class":"solr.TextField",
-    "postingsFormat":"Memory",
+    "postingsFormat":"FST50",
     "omitNorms":true,
     "indexAnalyzer":{
       "tokenizer":{ 

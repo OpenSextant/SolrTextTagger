@@ -11,6 +11,8 @@ those times.
 ## Version 2.6-SNAPSHOT (unreleased)
 
 * Performance: Avoid calling terms.iterator() when not needed
+* Notice: Lucene's postingsFormat="Memory" option will be removed imminently.
+  So use "FST50" which is nearly as good.
 
 ## Version 2.5, March 27th, 2018
 

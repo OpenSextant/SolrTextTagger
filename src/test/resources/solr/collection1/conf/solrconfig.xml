@@ -29,7 +29,7 @@
   <dataDir>${solr.data.dir:}</dataDir>
   <directoryFactory name="DirectoryFactory" class="${solr.directoryFactory:solr.RAMDirectoryFactory}"/>
 
-  <!-- for postingsFormat="Memory" -->
+  <!-- for postingsFormat="..." -->
   <codecFactory name="CodecFactory" class="solr.SchemaCodecFactory" />
   
   <!-- since Solr 4.8: -->

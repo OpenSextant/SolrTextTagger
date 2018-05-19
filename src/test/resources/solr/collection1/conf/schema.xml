@@ -50,7 +50,7 @@
     <fieldType name="int" class="solr.TrieIntField" precisionStep="0" positionIncrementGap="0"/>
 
     <fieldType name="tag" class="solr.TextField" positionIncrementGap="100"
-               postingsFormat="Memory" omitTermFreqAndPositions="true" omitNorms="true">
+               postingsFormat="FST50" omitTermFreqAndPositions="true" omitNorms="true">
       <analyzer type="index">
         <tokenizer class="solr.StandardTokenizerFactory" />
         <!--Usually good but for our tests, lets not. <filter class="solr.ASCIIFoldingFilterFactory"/>-->
@@ -67,7 +67,7 @@
 
     <!-- adds a stop filter -->
     <fieldType name="tagStop" class="solr.TextField" positionIncrementGap="100"
-               postingsFormat="Memory" omitTermFreqAndPositions="true" omitNorms="true">
+               postingsFormat="FST50" omitTermFreqAndPositions="true" omitNorms="true">
       <analyzer type="index">
         <tokenizer class="solr.StandardTokenizerFactory" />
         <filter class="solr.LowerCaseFilterFactory"/>
@@ -83,7 +83,7 @@
     </fieldType>
 
     <fieldType name="tagPartial" class="solr.TextField" positionIncrementGap="100"
-               postingsFormat="Memory" omitTermFreqAndPositions="true" omitNorms="true">
+               postingsFormat="FST50" omitTermFreqAndPositions="true" omitNorms="true">
       <analyzer type="index">
         <tokenizer class="solr.StandardTokenizerFactory" />
         <filter class="solr.LowerCaseFilterFactory"/>
@@ -98,7 +98,7 @@
     </fieldType>
 
     <fieldType name="tagXml" class="solr.TextField" positionIncrementGap="100"
-               postingsFormat="Memory" omitTermFreqAndPositions="true" omitNorms="true">
+               postingsFormat="FST50" omitTermFreqAndPositions="true" omitNorms="true">
       <analyzer type="index">
         <tokenizer class="solr.StandardTokenizerFactory" />
         <filter class="solr.LowerCaseFilterFactory"/>
