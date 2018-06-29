@@ -1,12 +1,13 @@
 This file records changes to the SolrTextTagger.  It has Solr & Java version compatibility info too.
 
-NOTE: There are two independent recommended version of the tagger: the latest 2.x and latest 1.x.
-1.x has a key feature (as seen below) that didn't make it to 2.x.  If you don't need that feature
-then use 2.x.
+NOTE: There are three independent versions of the tagger: the one in Apache Solr 7.4.0, the GitHub latest 2.x and GitHub latest 1.x.
+2.x does not support synonyms (posInc=0) analysis but the others do.  Only 2.x supports htmlOffsetAdjust.
 
 The [.travis.yml file](.travis.yml) shows the current testing version matrix
 on master.  Older releases will show older tested releases working at
 those times.
+
+The TaggerHandler in Apache Solr 7.4.0 is based on 2.6-SNAPSHOT, and has other changes.
 
 ## Version 2.6-SNAPSHOT (unreleased)
 
