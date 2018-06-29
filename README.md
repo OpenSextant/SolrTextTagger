@@ -1,6 +1,6 @@
 # Solr Text Tagger
 
-This project implements a "naive" text tagger based on Lucene / Solr, using
+This project implements a "naive" text tagger based on Apache Lucene / Solr, using
 Lucene FST (Finite State Transducer) technology under the hood for remarkable low-memory properties.
 It is "naive" because it does simple text word based substring tagging without consideration
 of any natural language context.  It operates on the results of how you
@@ -13,6 +13,10 @@ to enhance query-understanding.
 
 For a list of changes with version of this tagger, to include Solr & Java version compatibility, 
 see [CHANGES.md](CHANGES.md)
+
+### Note: the STT is included in Apache Solr 7.4.0 !!!
+
+Solr 7.4.0 now includes the Solr Text Tagger.  It's [documented in the Solr Reference Guide](https://builds.apache.org/job/Solr-reference-guide-master/javadoc/the-tagger-handler.html).  As-such, you likely should just use the one in Solr and not the one here.  That said, `htmlOffsetAdjust` is not implemented there.  Issues #82 and #81 document some information about the differences and contain further links.
 
 ## Resources / References
 
@@ -35,7 +39,7 @@ Pertaining to Lucene's Finite State Transducers:
 
   * David Smiley
   * Rupert Westenthaler   (notably the PhraseBuilder in the 1.1 branch)
-  
+
 ## Quick Start
 
 See the [QUICK_START.md](QUICK_START.md) file for a set of instructions to get you going ASAP.
