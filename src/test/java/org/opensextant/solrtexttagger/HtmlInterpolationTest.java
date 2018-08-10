@@ -71,6 +71,12 @@ public class HtmlInterpolationTest extends XmlInterpolationTest {
   }
 
   @Test
+  public void testHtmlAttribute() throws Exception{
+	  buildNames("start","end");
+	  assertXmlTag("start <object title='end'/> end", 2);
+  }
+  
+  @Test
   public void testHtmlNonTaggable() throws Exception {
     baseParams.set("nonTaggableTags","a" + (random().nextBoolean() ? ",sub" : ""));
     buildNames("start end");
