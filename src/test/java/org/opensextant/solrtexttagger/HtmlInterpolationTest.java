@@ -63,7 +63,7 @@ public class HtmlInterpolationTest extends XmlInterpolationTest {
   @Test
   public void testShortHtml() throws Exception{
 	  buildNames("start","end");
-	  assertXmlTag("start <td/> end", true,2);
+	  assertXmlTag("start <td/> end", 2);
 	  buildNames("start end");
 	  assertXmlTag("start <td/> end", true);
   }

@@ -111,18 +111,14 @@ public class XmlInterpolationTest extends AbstractTaggerTest {
 		}
 	}
 
-	protected void assertXmlTag(String docText, boolean expected, int expectedCount) throws Exception {
+	protected void assertXmlTag(String docText, int expectedCount) throws Exception {
 		final SolrQueryRequest req = reqDoc(docText);
 		try { // 5.4 and beyond we can use try-with-resources
 			final SolrQueryResponse rsp = h.queryAndResponse(req.getParams().get("qt"), req);
-			final TestTag[] testTags = pullTagsFromResponse(req, rsp);
-			if (!expected) {
-				assertEquals(0, testTags.length);
-			} else {
-				assertEquals(expectedCount, testTags.length);
-				final TestTag tag = testTags[0];
-				validateXml(insertAnchorAtOffsets(docText, tag.startOffset, tag.endOffset, tag.docName));
-			}
+			final TestTag[] testTags = pullTagsFromResponse(req, rsp);			
+			assertEquals(expectedCount, testTags.length);
+			final TestTag tag = testTags[0];
+			validateXml(insertAnchorAtOffsets(docText, tag.startOffset, tag.endOffset, tag.docName));		
 		} finally {
 			req.close();
 		}
