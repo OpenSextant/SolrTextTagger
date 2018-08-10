@@ -183,7 +183,7 @@ public class TaggerRequestHandler extends RequestHandlerBase {
                 return;
               }
               startOffset = offsetPair[0];
-              endOffset = offsetPair[1];
+              endOffset = offsetPair[1]<0?inputString.length():offsetPair[1];
             }
 
             NamedList tag = new NamedList();
