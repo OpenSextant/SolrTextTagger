@@ -167,7 +167,7 @@ mvn org.codehaus.mojo:versions-maven-plugin:2.2:display-dependency-updates
         <version>2.19.1</version>
         <configuration>
           <systemPropertyVariables>
-            <test.solr.allowed.securerandom>SHA1PRNG</test.solr.allowed.securerandom>
+            <test.solr.allowed.securerandom>NativePRNG</test.solr.allowed.securerandom>
           </systemPropertyVariables>
         </configuration>
       </plugin>
