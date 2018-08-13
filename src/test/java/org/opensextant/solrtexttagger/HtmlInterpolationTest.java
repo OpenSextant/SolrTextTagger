@@ -30,6 +30,7 @@ public class HtmlInterpolationTest extends XmlInterpolationTest {
   public void setUp() throws Exception {
     super.setUp();
     baseParams.set("htmlOffsetAdjust", "true");
+    baseParams.set("matchText", "true");
   }
 
   @Override
