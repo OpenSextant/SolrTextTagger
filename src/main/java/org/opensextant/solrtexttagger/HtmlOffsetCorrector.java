@@ -78,7 +78,7 @@ public class HtmlOffsetCorrector extends OffsetCorrector {
 
           //TODO Consider "implicitly terminating tags", which is dependent on the current tag.
 
-          if (!startTag.isEmptyElementTag() && !startTag.isEndTagForbidden()) {//e.g. not "<br>"
+          if (!startTag.isEmptyElementTag() && !startTag.isEndTagForbidden() && !startTag.isSyntacticalEmptyElementTag()) {//e.g. not "<br>"
             tagInfo.ensureCapacity(tagInfo.size() + 5);
             final int parentTag = thisTag;
             tagInfo.add(parentTag);

@@ -30,7 +30,6 @@ public class HtmlInterpolationTest extends XmlInterpolationTest {
   public void setUp() throws Exception {
     super.setUp();
     baseParams.set("htmlOffsetAdjust", "true");
-    baseParams.set("matchText", "true");
   }
 
   @Override
@@ -59,23 +58,9 @@ public class HtmlInterpolationTest extends XmlInterpolationTest {
     assertXmlTag("start end <em>other text</em>", true);
     assertXmlTag("start end<em> other text</em>", true);
     assertXmlTag("<em>other text</em> start end", true);
-    assertXmlTag("start <td/> end", true);
-  }
-  
-  @Test
-  public void testShortHtml() throws Exception{
-	  buildNames("start","end");
-	  assertXmlTag("start <td/> end", 2);
-	  buildNames("start end");
-	  assertXmlTag("start <td/> end", true);
+    assertXmlTag("start <td/> end", true);    
   }
 
-  @Test
-  public void testHtmlAttribute() throws Exception{
-	  buildNames("start","end");
-	  assertXmlTag("start <object title='end'/> end", 2);
-  }
-  
   @Test
   public void testHtmlNonTaggable() throws Exception {
     baseParams.set("nonTaggableTags","a" + (random().nextBoolean() ? ",sub" : ""));
