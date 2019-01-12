@@ -20,6 +20,7 @@ Solr 7.4.0 now includes the Solr Text Tagger.  It's [documented in the Solr Refe
 
 ## Resources / References
 
+* [SoDA](https://github.com/elsevierlabs-os/soda) "Solr Dictionary Annotator" is an open-source system that uses this tagger extensively.  You might want to use that instead of the tagger directly.  In addition to more features add on top of the tagger, it has extensive cloud scaling documentation.
 * [How-To blog post by Mikołaj Kania at itblues.pl](http://itblues.pl/2017/03/30/extract-entities-with-solr-text-tagger/)
 * [Dictionary Based Annotation at scale with Spark, SolrTextTagger, and OpenNLP (video)](https://www.youtube.com/watch?v=gOe0aYAS8Do)
     ([slides](http://www.slideshare.net/sujitpal/sseu-2015soda))
