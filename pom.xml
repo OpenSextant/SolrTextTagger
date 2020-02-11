@@ -373,7 +373,7 @@ mvn org.codehaus.mojo:versions-maven-plugin:2.2:display-dependency-updates
     <repository>
       <id>apache.snapshots</id>
       <name>Apache Snapshot Repository</name>
-      <url>http://repository.apache.org/snapshots</url>
+      <url>https://repository.apache.org/snapshots</url>
       <releases>
         <enabled>false</enabled>
       </releases>
