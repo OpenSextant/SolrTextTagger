@@ -63,7 +63,7 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <!-- See CHANGES.md for details on Solr version compatibility, and .travis.yml -->
-    <solr.version>7.2.1</solr.version>
+    <solr.version>8.4.1</solr.version>
   </properties>
 
   <dependencies>
